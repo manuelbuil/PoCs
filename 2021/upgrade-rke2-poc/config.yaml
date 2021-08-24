@@ -1,0 +1,2 @@
+write-kubeconfig-mode: 644
+token: "secret"

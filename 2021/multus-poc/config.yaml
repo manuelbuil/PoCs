@@ -1,0 +1,3 @@
+write-kubeconfig-mode: 644
+token: "secret"
+cni: multus,calico

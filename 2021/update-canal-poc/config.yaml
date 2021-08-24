@@ -1,0 +1,4 @@
+write-kubeconfig-mode: 644
+disable:
+  - rke2-canal
+token: "secret"
