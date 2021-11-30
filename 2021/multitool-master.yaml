@@ -1,0 +1,26 @@
+# k label node ip-10-0-10-26.eu-west-3.compute.internal testing=master
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: multitool-master
+  name: multitool-deployment-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multitool-master
+  template:
+    metadata:
+      labels:
+        app: multitool-master
+    spec:
+      containers:
+      - image: praqma/network-multitool
+        imagePullPolicy: Always
+        name: multitool
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN","NET_RAW"]
+      nodeSelector:
+        testing: master
