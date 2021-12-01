@@ -1,0 +1,2 @@
+server: "https://10.0.10.36:6443"
+token: "secret"
