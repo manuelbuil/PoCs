@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: multitool-iperf3
+  name: multitool-deployment-iperf3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multitool-iperf3
+  template:
+    metadata:
+      labels:
+        app: multitool-iperf3
+    spec:
+      containers:
+      - image: mlabbe/iperf3:latest
+        imagePullPolicy: Always
+        name: multitool-iperf3
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN","NET_RAW"]

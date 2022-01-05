@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: netperf-xxx
+spec:
+  ports:
+  - port: 12865
+    name: control
+  - port: 30080
+    name: data
+  selector:
+    run: netperf
+  type: NodePort

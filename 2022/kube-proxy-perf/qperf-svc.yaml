@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: qperf-xxx
+  labels:
+    test: qperf
+spec:
+  ports:
+  - port: 19765
+    name: "default"
+    protocol: TCP
+  - port: 19766
+    name: "link-port"
+    protocol: TCP
+  selector:
+    app: multitool-qperf
+  type: NodePort

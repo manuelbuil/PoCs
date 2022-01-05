@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iperf3-xxx
+  labels:
+    test: iperf3
+spec:
+  ports:
+  - port: 5201 
+  selector:
+    app: multitool-iperf3
+  type: NodePort

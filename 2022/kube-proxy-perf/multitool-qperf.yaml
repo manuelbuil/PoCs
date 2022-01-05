@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: multitool-qperf
+  name: multitool-deployment-qperf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multitool-qperf
+  template:
+    metadata:
+      labels:
+        app: multitool-qperf
+    spec:
+      containers:
+      - image: xridge/qperf
+        imagePullPolicy: Always
+        name: multitool-qperf
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN","NET_RAW"]

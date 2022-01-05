@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: netperf
+  name: netperf
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: netperf
+  template:
+    metadata:
+      labels:
+        run: netperf
+    spec:
+      containers:
+      - image: brb0/netperf
+        name: netperf
