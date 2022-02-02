@@ -28,7 +28,6 @@ metadata:
     app: httpbin
     service: httpbin
 spec:
-  type: LoadBalancer
   ports:
   - name: http
     port: 8000
