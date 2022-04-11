@@ -3,9 +3,9 @@ kind: Deployment
 metadata:
   labels:
     app: multitool
-  name: multitool-deploymen
+  name: multitool-deployment
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: multitool

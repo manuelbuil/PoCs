@@ -71,6 +71,9 @@ spec:
   selector:
     app: MyDualApp
   ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+  - IPv6
+  - IPv4
   ports:
     - protocol: TCP
       port: 8083

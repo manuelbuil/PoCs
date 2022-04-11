@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-network-policy-ipv6
+  name: test-network-policy-ipv6-podselector
   namespace: default
 spec:
   podSelector:

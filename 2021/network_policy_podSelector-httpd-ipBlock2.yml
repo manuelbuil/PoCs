@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-network-policy-ipv6
+  name: test-network-policy-ipv6-2
   namespace: default
 spec:
   podSelector:
@@ -12,7 +12,7 @@ spec:
   ingress:
   - from:
     - ipBlock:
-        cidr: 2001:cafe:42::a/128
+        cidr: 10.42.0.10/32
     ports:
     - protocol: TCP
       port: 80
