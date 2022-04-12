@@ -32,4 +32,6 @@ do
 	ping -c 4 $ip; echo;
 done
 
+kubectl apply -f connectivity-check.yaml
+
 echo "Finishing test..."

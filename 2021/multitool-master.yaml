@@ -16,7 +16,7 @@ spec:
         app: multitool-master
     spec:
       containers:
-      - image: praqma/network-multitool
+      - image: wbitt/network-multitool
         imagePullPolicy: Always
         name: multitool
         securityContext:
