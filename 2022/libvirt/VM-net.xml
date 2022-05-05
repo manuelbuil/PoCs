@@ -1,0 +1,20 @@
+<network ipv6='yes'>
+  <name>network</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr1' stp='on' delay='0'/>
+  <mac address='52:54:00:13:23:d4'/>
+  <dns enable='yes'/>
+  <ip family='ipv4' address='10.17.0.1' prefix='22'>
+    <dhcp>
+      <range start='10.17.0.2' end='10.17.3.254'/>
+      <host mac='52:54:00:06:15:FA' name='master' ip='10.17.3.1'/>
+      <host mac='52:54:00:42:71:32' name='node1' ip='10.17.3.2'/>
+      <host mac='52:54:00:17:71:32' name='node2' ip='10.17.3.3'/>
+    </dhcp>
+  </ip>
+</network>
+
