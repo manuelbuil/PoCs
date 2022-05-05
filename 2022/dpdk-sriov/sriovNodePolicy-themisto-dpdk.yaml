@@ -1,0 +1,17 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: policy-themisto-dpdk
+  namespace: kube-system
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: themisto
+  resourceName: intelnicsdpdk
+  mtu: 1500
+  numVfs: 2
+  nicSelector:
+    deviceID: "1521"
+    vendor: "8086"
+    rootDevices:
+    -  0000:03:00.1
+  deviceType: vfio-pci

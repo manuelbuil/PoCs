@@ -1,0 +1,17 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: policy-themisto
+  namespace: kube-system
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: themisto
+  resourceName: intelnics
+  mtu: 1500
+  numVfs: 4
+  nicSelector:
+    deviceID: "1521"
+    vendor: "8086"
+    rootDevices:
+    -  0000:03:00.1
+  deviceType: netdevice
