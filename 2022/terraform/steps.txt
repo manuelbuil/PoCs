@@ -1,0 +1,16 @@
+az login
+az account set --subscription f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f
+
+# Credentials
+$ export ARM_CLIENT_ID="<APPID_VALUE>" ==> App registration menu (Application ID)
+$ export ARM_CLIENT_SECRET="<PASSWORD_VALUE>" ==> App registration menu > Certificates & secrets (Secret Value)
+$ export ARM_SUBSCRIPTION_ID="<SUBSCRIPTION_ID>" ==> Subcriptions (Subscription ID of EI-container-eco)
+$ export ARM_TENANT_ID="<TENANT_VALUE>" ==> App registration menu (Tenant ID)
+
+# Terraform stuff
+terraform init
+terraform fmt
+terraform validate
+terraform import azurerm_resource_group.rg /subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking
+terraform import azurerm_virtual_network.vn /subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking/providers/Microsoft.Network/virtualNetworks/rke2-k3s-networking-vnet
+terraform import azurerm_subnet.sn /subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking/providers/Microsoft.Network/virtualNetworks/rke2-k3s-networking-vnet/subnets/IPv6-default
