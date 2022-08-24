@@ -33,15 +33,23 @@ resource "azurerm_subnet" "sn" {
   address_prefixes     = ["10.1.1.0/24", "fd56:5da5:a285:eea0::/64"]
 }
 
-#resource "azurerm_public_ip" "test" {
-#  name                = "mbuil-publicIP"
+resource "azurerm_public_ip" "pIP" {
+  name                = "mbuil-publicIP${count.index}"
+  count               = 2
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
+}
+
+#resource "azurerm_public_ip" "pIP2" {
+#  name                = "mbuil-publicIP2"
 #  location            = azurerm_resource_group.rg.location
 #  resource_group_name = azurerm_resource_group.rg.name
-#  allocation_method   = "Static"
+#  allocation_method   = "Dynamic"
 #}
-#
+
 resource "azurerm_network_interface" "if" {
-  count               = 1
+  count               = 2
   name                = "mbuil-if${count.index}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -52,6 +60,7 @@ resource "azurerm_network_interface" "if" {
     private_ip_address_allocation = "dynamic"
     private_ip_address_version    = "IPv4"
     primary                       = true
+    public_ip_address_id          = element(azurerm_public_ip.pIP.*.id, count.index)
   }
 
   ip_configuration {
@@ -74,7 +83,7 @@ resource "azurerm_network_interface" "if" {
 #}
 #
 resource "azurerm_virtual_machine" "test" {
-  count                 = 1
+  count                 = 2
   name                  = "terraform-mbuil-vm${count.index}"
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
