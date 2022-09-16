@@ -51,6 +51,15 @@ spec:
         app: httpbin
         version: v1
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
       serviceAccountName: httpbin
       containers:
       - image: docker.io/kennethreitz/httpbin
