@@ -1,0 +1,132 @@
+version: "3.4"
+
+services:
+  netmaker:
+    container_name: netmaker
+    image: gravitl/netmaker:v0.16.0
+    cap_add: 
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.forwarding=1
+    restart: always
+    volumes:
+      - dnsconfig:/root/config/dnsconfig
+      - sqldata:/root/data
+      - shared_certs:/etc/netmaker
+    environment:
+      SERVER_NAME: "broker.mbuilnetmaker.ydns.eu"
+      SERVER_HOST: "20.16.181.100"
+      SERVER_API_CONN_STRING: "api.mbuilnetmaker.ydns.eu:443"
+      COREDNS_ADDR: "20.16.181.100"
+      DNS_MODE: "on"
+      SERVER_HTTP_HOST: "api.mbuilnetmaker.ydns.eu"
+      API_PORT: "8081"
+      CLIENT_MODE: "on"
+      MASTER_KEY: "$MASTERKEY"
+      CORS_ALLOWED_ORIGIN: "*"
+      DISPLAY_KEYS: "on"
+      DATABASE: "sqlite"
+      NODE_ID: "netmaker-server-1"
+      MQ_HOST: "mq"
+      MQ_PORT: "443"
+      MQ_SERVER_PORT: "1883"
+      HOST_NETWORK: "off"
+      VERBOSITY: "5"
+      MANAGE_IPTABLES: "on"
+      PORT_FORWARD_SERVICES: "dns"
+    ports:
+      - "51821-51830:51821-51830/udp"
+    expose:
+      - "8081"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.netmaker-api.entrypoints=websecure
+      - traefik.http.routers.netmaker-api.rule=Host(`api.mbuilnetmaker.ydns.eu`)
+      - traefik.http.routers.netmaker-api.service=netmaker-api
+      - traefik.http.services.netmaker-api.loadbalancer.server.port=8081
+  netmaker-ui:
+    container_name: netmaker-ui
+    image: gravitl/netmaker-ui:v0.16.0
+    depends_on:
+      - netmaker
+    links:
+      - "netmaker:api"
+    restart: always
+    environment:
+      BACKEND_URL: "https://api.mbuilnetmaker.ydns.eu"
+    expose:
+      - "80"
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.nmui-security.headers.accessControlAllowOriginList=*.mbuilnetmaker.ydns.eu
+      - traefik.http.middlewares.nmui-security.headers.stsSeconds=31536000
+      - traefik.http.middlewares.nmui-security.headers.browserXssFilter=true
+      - traefik.http.middlewares.nmui-security.headers.customFrameOptionsValue=SAMEORIGIN
+      - traefik.http.middlewares.nmui-security.headers.customResponseHeaders.X-Robots-Tag=none
+      - traefik.http.middlewares.nmui-security.headers.customResponseHeaders.Server= # Remove the server name
+      - traefik.http.routers.netmaker-ui.entrypoints=websecure
+      - traefik.http.routers.netmaker-ui.middlewares=nmui-security@docker
+      - traefik.http.routers.netmaker-ui.rule=Host(`dashboard.mbuilnetmaker.ydns.eu`)
+      - traefik.http.routers.netmaker-ui.service=netmaker-ui
+      - traefik.http.services.netmaker-ui.loadbalancer.server.port=80
+  coredns:
+    container_name: coredns
+    image: coredns/coredns
+    command: -conf /root/dnsconfig/Corefile
+    depends_on:
+      - netmaker
+    restart: always
+    volumes:
+      - dnsconfig:/root/dnsconfig
+  traefik:
+    image: traefik:v2.6
+    container_name: traefik
+    command:
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+      - "--log.level=INFO"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--serverstransport.insecureskipverify=true"
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/letsencrypt
+      - /home/azureuser/certs/:/etc/certs/
+      - /home/azureuser/certs-traefik.yml:/etc/traefik/dynamic/certs-traefik.yml
+    ports:
+      - "443:443"
+  mq:
+    container_name: mq
+    image: eclipse-mosquitto:2.0.11-openssl
+    depends_on:
+      - netmaker
+    restart: unless-stopped
+    volumes:
+      - /root/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+      - shared_certs:/mosquitto/certs
+    expose:
+      - "8883"
+    labels:
+      - traefik.enable=true
+      - traefik.tcp.routers.mqtts.rule=HostSNI(`broker.mbuilnetmaker.ydns.eu`)
+      - traefik.tcp.routers.mqtts.tls.passthrough=true
+      - traefik.tcp.services.mqtts-svc.loadbalancer.server.port=8883
+      - traefik.tcp.routers.mqtts.service=mqtts-svc
+      - traefik.tcp.routers.mqtts.entrypoints=websecure
+volumes:
+  traefik_certs: {}
+  shared_certs: {}
+  sqldata: {}
+  dnsconfig: {}
+  mosquitto_data: {}
+  mosquitto_logs: {}
+  traefik_etc_certs: {}
