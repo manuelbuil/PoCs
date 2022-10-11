@@ -1,0 +1,6 @@
+[[tls.certificates]]
+tls:
+  certificates:
+    - certFile: /etc/traefik/certificate.pem
+      keyFile: /etc/traefik/key.pem
+
