@@ -3,3 +3,7 @@ disable:
   - rke2-canal
 token: "secret"
 cni: cilium
+# curl -sfL https://get.rke2.io | sh -
+# export PATH=$PATH:/var/lib/rancher/rke2/bin/
+# export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+# alias k=kubectl

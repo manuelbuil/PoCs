@@ -120,7 +120,7 @@ resource "azurerm_virtual_machine" "test" {
   os_profile_linux_config {
     disable_password_authentication = true
     ssh_keys {
-      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDmIGj5WCtf/zMocWGInE1d5KWU\r\nHZjZKKsVG+LjcaXb2VT3FvyO6EWwegod6VkGHjlHYYBHkiCv0LIGDnTleE/kaCkw\r\nTGXEEG+p1jZoP44Pg4LLfmyqfHy3SYLsUci/oMem6JpTQUTqn92h9Dr4jxLSsz0B\r\nhIvnnRquazSHB1PProkDAo4w3L1yUIgrm+n5fBlBvF5o8k78fkj2iU5wPuAOyOFW\r\nfLLYV096HafcW5l5CGSL8y9w30YxwnZeNhzxlz1tPUF6qT1n04MST4gAaglWaV85\r\nmQsxfKhXRumpUjq6KbjQ9r/75HzxIRVV1BIt273D/58JZMmDrT5NVKvGKTiVaeHP\r\n412AkSO522nq99rd7dCPMpk2k1wVZQgcHioX55OXojN2I0YfHeeq8VcxisyTqjv7\r\nCiAQPZbO3tHeafNhEDB5zDMS/FUl2YGCBN4F/7PjIXIPuYZgCW4tMXHVTKOtqtfm\r\njUkE0lejmlXl5G6nTIug2FirBgSkcJV8ZTDUUOE= generated-by-azure\r\n"
+      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDSDujXqHgH0BhMExw+PpxDIoadAmxl28KQQ/Lr73PRLhSYBe2JSvh3DFL1OkfLaORsNApXFdCmO2U4606o4a0ytduQmTBYSMfcAbaBqHxj3CU1HmOxLv4FZoXSrtm7Jvho8suwjIotVfCdWYqXAyVWxfTNfMUGKVPOJgLBDZhLZ+eg3KEKYR1V37pbdE/KZabBG627vMffXdGlrCXvkQaW3UjvMK7u+VqSh2ykllTijekDApwMAeFt+tSluIN7dvXWy38QnbYkVQAJGBmEkwqEwm1Dpv41JcDaqN1UQY5vjlUryqXDqBvo7Vof/2lubDtO0DHCD/C+1enZYW29UlSyGR7qki9wDS1GFkHemmI5d+QpjK5czKYhP+uB0eKcPTP4+kP6PRdahubZMQ18zkq5yVWfwloRKxa39MwBHYf1d7my+swR8Nf2AhCxb0b8M3RXj1hnT6oYfEAukg1yS3km/QXuSG400WmXKtU+G0i/Jr50CEKky5q8SkYP4ErBxDE= manuel@localhost.localdomain"
       path     = "/home/azureuser/.ssh/authorized_keys"
     }
   }

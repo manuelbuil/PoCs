@@ -21,3 +21,13 @@ spec:
         securityContext:
           capabilities:
             add: ["NET_ADMIN","NET_RAW"]
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - multitool
+            topologyKey: kubernetes.io/hostname
