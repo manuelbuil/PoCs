@@ -3,4 +3,4 @@ token: "secret"
 node-ip: 10.0.10.40,2a05:d012:c6f:4699:58c6:8609:a6d5:d1cb
 cluster-cidr: 10.42.0.0/16,2001:cafe:42:0::/56
 service-cidr: 10.43.0.0/16,2001:cafe:42:1::/112
-disable-network-policy: true
+# curl -sfL https://get.k3s.io | sh -
