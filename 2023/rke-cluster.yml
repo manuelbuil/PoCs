@@ -1,0 +1,12 @@
+kubernetes_version: "v1.24.15-rancher1-1"
+nodes:
+- address: $PUBLIC_IP
+  internal_address: 10.1.1.10
+  role:
+  - controlplane
+  - worker
+  - etcd
+  user: azureuser
+  ssh_key_path: "$ID_RSA_PATH"
+
+# rke up
