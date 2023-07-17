@@ -1,3 +1,4 @@
+# Install docker.io and add sudo usermod -aG docker $USER
 kubernetes_version: "v1.24.15-rancher1-1"
 nodes:
 - address: $PUBLIC_IP
@@ -8,5 +9,15 @@ nodes:
   - etcd
   user: azureuser
   ssh_key_path: "$ID_RSA_PATH"
+- address: $PUBLIC_IP2
+  internal_address: 10.1.1.9
+  role:
+  - worker
+  user: azureuser
+  ssh_key_path: "$ID_RSA_PATH"
+system_images:
+  alpine: mbuilsuse/rke-tools:testing5-20230717
+  kubernetes: mbuilsuse/hyperkube:v1.24.15-rancher1
+  kubernetes_services_sidecar: mbuilsuse/rke-tools:testing5-20230717
 
 # rke up
