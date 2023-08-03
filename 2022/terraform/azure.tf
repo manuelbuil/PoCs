@@ -96,11 +96,18 @@ resource "azurerm_virtual_machine" "test" {
   # Uncomment this line to delete the data disks automatically when deleting the VM
   delete_data_disks_on_termination = true
 
+#  storage_image_reference {
+#    publisher = "canonical"
+#    sku       = "20_04-lts-gen2"
+#    version   = "latest"
+#    offer     = "0001-com-ubuntu-server-focal"
+#  }
+
   storage_image_reference {
     publisher = "canonical"
-    sku       = "20_04-lts-gen2"
+    sku       = "22_04-lts-gen2"
     version   = "latest"
-    offer     = "0001-com-ubuntu-server-focal"
+    offer     = "0001-com-ubuntu-server-jammy"
   }
 
   storage_os_disk {
