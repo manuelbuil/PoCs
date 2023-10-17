@@ -10,53 +10,41 @@ terraform {
   }
 }
 
+variable "rgLocation" {
+	type	= string
+	default = "westeurope"
+}
+variable "rgName" {
+	type	= string
+	default = "rke2-k3s-networking"
+}
+
+variable "snId" {
+	type = string
+	default = "/subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking/providers/Microsoft.Network/virtualNetworks/rke2-k3s-networking-vnet/subnets/IPv6-default"
+}
+
 provider "azurerm" {
   features {}
-}
-
-resource "azurerm_resource_group" "rg" {
-  name     = "rke2-k3s-networking"
-  location = "West Europe"
-}
-
-resource "azurerm_virtual_network" "vn" {
-  name                = "rke2-k3s-networking-vnet"
-  address_space       = ["10.1.0.0/16", "fd56:5da5:a285::/48"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-}
-
-resource "azurerm_subnet" "sn" {
-  name                 = "IPv6-default"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vn.name
-  address_prefixes     = ["10.1.1.0/24", "fd56:5da5:a285:eea0::/64"]
 }
 
 resource "azurerm_public_ip" "pIP" {
   name                = "mbuil-publicIP${count.index}"
   count               = 2
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.rgLocation
+  resource_group_name = var.rgName
   allocation_method   = "Dynamic"
 }
-
-#resource "azurerm_public_ip" "pIP2" {
-#  name                = "mbuil-publicIP2"
-#  location            = azurerm_resource_group.rg.location
-#  resource_group_name = azurerm_resource_group.rg.name
-#  allocation_method   = "Dynamic"
-#}
 
 resource "azurerm_network_interface" "if" {
   count               = 2
   name                = "mbuil-if${count.index}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.rgLocation
+  resource_group_name = var.rgName
 
   ip_configuration {
     name                          = "ipConfigurationIPv4"
-    subnet_id                     = azurerm_subnet.sn.id
+    subnet_id                     = var.snId
     private_ip_address_allocation = "dynamic"
     private_ip_address_version    = "IPv4"
     primary                       = true
@@ -65,28 +53,18 @@ resource "azurerm_network_interface" "if" {
 
   ip_configuration {
     name                          = "ipConfigurationIPv6"
-    subnet_id                     = azurerm_subnet.sn.id
+    subnet_id                     = var.snId
     private_ip_address_allocation = "dynamic"
     private_ip_address_version    = "IPv6"
     primary                       = false
   }
 }
 
-#resource "azurerm_managed_disk" "test" {
-#  count                = 2
-#  name                 = "datadisk_existing_${count.index}"
-#  location             = azurerm_resource_group.rg.location
-#  resource_group_name  = azurerm_resource_group.rg.name
-#  storage_account_type = "Standard_LRS"
-#  create_option        = "Empty"
-#  disk_size_gb         = "35"
-#}
-#
-resource "azurerm_virtual_machine" "test" {
+resource "azurerm_virtual_machine" "controlPlane" {
   count                 = 2
   name                  = "terraform-mbuil-vm${count.index}"
-  location              = azurerm_resource_group.rg.location
-  resource_group_name   = azurerm_resource_group.rg.name
+  location              = var.rgLocation
+  resource_group_name   = var.rgName
   network_interface_ids = [element(azurerm_network_interface.if.*.id, count.index)]
   vm_size               = "Standard_DS2_v2"
 
@@ -95,13 +73,6 @@ resource "azurerm_virtual_machine" "test" {
 
   # Uncomment this line to delete the data disks automatically when deleting the VM
   delete_data_disks_on_termination = true
-
-#  storage_image_reference {
-#    publisher = "canonical"
-#    sku       = "20_04-lts-gen2"
-#    version   = "latest"
-#    offer     = "0001-com-ubuntu-server-focal"
-#  }
 
   storage_image_reference {
     publisher = "canonical"
@@ -132,3 +103,8 @@ resource "azurerm_virtual_machine" "test" {
     }
   }
 }
+
+output "ipAddresses" {
+  value       = azurerm_public_ip.pIP[*].ip_address
+}
+
