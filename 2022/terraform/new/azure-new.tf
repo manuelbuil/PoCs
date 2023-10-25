@@ -60,48 +60,36 @@ resource "azurerm_network_interface" "if" {
   }
 }
 
-resource "azurerm_virtual_machine" "controlPlane" {
+resource "azurerm_linux_virtual_machine" "myMachine" {
   count                 = 2
   name                  = "terraform-mbuil-vm${count.index}"
   location              = var.rgLocation
   resource_group_name   = var.rgName
   network_interface_ids = [element(azurerm_network_interface.if.*.id, count.index)]
-  vm_size               = "Standard_DS2_v2"
+  size                  = "Standard_DS2_v2"
+  admin_username	= "azureuser"
 
-  # Uncomment this line to delete the OS disk automatically when deleting the VM
-  delete_os_disk_on_termination = true
-
-  # Uncomment this line to delete the data disks automatically when deleting the VM
-  delete_data_disks_on_termination = true
-
-  storage_image_reference {
+  source_image_reference {
     publisher = "canonical"
     sku       = "22_04-lts-gen2"
     version   = "latest"
     offer     = "0001-com-ubuntu-server-jammy"
   }
 
-  storage_os_disk {
-    name              = "myosdisk${count.index}"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Standard_LRS"
-    disk_size_gb      = 30
+  os_disk {
+    caching	         = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+    disk_size_gb	 = 30
   }
 
-  os_profile {
-    computer_name  = "mbuil-vm${count.index}"
-    admin_username = "azureuser"
-    admin_password = ""
-  }
+  admin_ssh_key {
+    username   = "azureuser"
+    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDSDujXqHgH0BhMExw+PpxDIoadAmxl28KQQ/Lr73PRLhSYBe2JSvh3DFL1OkfLaORsNApXFdCmO2U4606o4a0ytduQmTBYSMfcAbaBqHxj3CU1HmOxLv4FZoXSrtm7Jvho8suwjIotVfCdWYqXAyVWxfTNfMUGKVPOJgLBDZhLZ+eg3KEKYR1V37pbdE/KZabBG627vMffXdGlrCXvkQaW3UjvMK7u+VqSh2ykllTijekDApwMAeFt+tSluIN7dvXWy38QnbYkVQAJGBmEkwqEwm1Dpv41JcDaqN1UQY5vjlUryqXDqBvo7Vof/2lubDtO0DHCD/C+1enZYW29UlSyGR7qki9wDS1GFkHemmI5d+QpjK5czKYhP+uB0eKcPTP4+kP6PRdahubZMQ18zkq5yVWfwloRKxa39MwBHYf1d7my+swR8Nf2AhCxb0b8M3RXj1hnT6oYfEAukg1yS3km/QXuSG400WmXKtU+G0i/Jr50CEKky5q8SkYP4ErBxDE= manuel@localhost.localdomain"
+}
 
-  os_profile_linux_config {
-    disable_password_authentication = true
-    ssh_keys {
-      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDSDujXqHgH0BhMExw+PpxDIoadAmxl28KQQ/Lr73PRLhSYBe2JSvh3DFL1OkfLaORsNApXFdCmO2U4606o4a0ytduQmTBYSMfcAbaBqHxj3CU1HmOxLv4FZoXSrtm7Jvho8suwjIotVfCdWYqXAyVWxfTNfMUGKVPOJgLBDZhLZ+eg3KEKYR1V37pbdE/KZabBG627vMffXdGlrCXvkQaW3UjvMK7u+VqSh2ykllTijekDApwMAeFt+tSluIN7dvXWy38QnbYkVQAJGBmEkwqEwm1Dpv41JcDaqN1UQY5vjlUryqXDqBvo7Vof/2lubDtO0DHCD/C+1enZYW29UlSyGR7qki9wDS1GFkHemmI5d+QpjK5czKYhP+uB0eKcPTP4+kP6PRdahubZMQ18zkq5yVWfwloRKxa39MwBHYf1d7my+swR8Nf2AhCxb0b8M3RXj1hnT6oYfEAukg1yS3km/QXuSG400WmXKtU+G0i/Jr50CEKky5q8SkYP4ErBxDE= manuel@localhost.localdomain"
-      path     = "/home/azureuser/.ssh/authorized_keys"
-    }
-  }
+  # cloud-init executing this script
+  custom_data = filebase64("installDockerHelm.sh")
+
 }
 
 output "ipAddresses" {
