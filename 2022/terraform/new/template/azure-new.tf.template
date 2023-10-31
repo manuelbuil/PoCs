@@ -30,14 +30,14 @@ provider "azurerm" {
 
 resource "azurerm_public_ip" "pIP" {
   name                = "mbuil-publicIP${count.index}"
-  count               = 2
+  count               = %COUNT%
   location            = var.rgLocation
   resource_group_name = var.rgName
   allocation_method   = "Dynamic"
 }
 
 resource "azurerm_network_interface" "if" {
-  count               = 2
+  count               = %COUNT%
   name                = "mbuil-if${count.index}"
   location            = var.rgLocation
   resource_group_name = var.rgName
@@ -61,7 +61,7 @@ resource "azurerm_network_interface" "if" {
 }
 
 resource "azurerm_linux_virtual_machine" "myMachine" {
-  count                 = 2
+  count                 = %COUNT%
   name                  = "terraform-mbuil-vm${count.index}"
   location              = var.rgLocation
   resource_group_name   = var.rgName
@@ -88,7 +88,7 @@ resource "azurerm_linux_virtual_machine" "myMachine" {
 }
 
   # cloud-init executing this script
-  custom_data = filebase64("installK3sAndRancher.sh")
+  custom_data = filebase64(%CLOUDINIT%)
 
 }
 
