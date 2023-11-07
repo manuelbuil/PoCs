@@ -88,7 +88,7 @@ resource "azurerm_linux_virtual_machine" "myMachine" {
 }
 
   # cloud-init executing this script
-  custom_data = filebase64("installK3sAndRancher.sh")
+  custom_data = filebase64("installDockerHelm.sh")
 
 }
 

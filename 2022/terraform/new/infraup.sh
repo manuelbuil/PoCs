@@ -23,7 +23,7 @@ case $1 in
     sed -i 's/%COUNT%/2/g' azure-new.tf
   ;;
   "rancher")
-    echo "k3s option"
+    echo "rancher option"
     sed -i 's/%CLOUDINIT%/"installK3sAndRancher.sh"/g' azure-new.tf
     sed -i 's/%COUNT%/2/g' azure-new.tf
   ;;
