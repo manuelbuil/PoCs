@@ -19,12 +19,17 @@ cp template/azure-new.tf.template azure-new.tf
 case $1 in
   "rke1")
     echo "rke1 option"
-    sed -i 's/%CLOUDINIT%/"installDockerHelm.sh"/g' azure-new.tf
+    sed -i 's/%CLOUDINIT%/"cloud-init-scripts\/installDockerHelm.sh"/g' azure-new.tf
     sed -i 's/%COUNT%/2/g' azure-new.tf
   ;;
   "rancher")
     echo "rancher option"
-    sed -i 's/%CLOUDINIT%/"installK3sAndRancher.sh"/g' azure-new.tf
+    sed -i 's/%CLOUDINIT%/"cloud-init-scripts\/installK3sAndRancher.sh"/g' azure-new.tf
+    sed -i 's/%COUNT%/1/g' azure-new.tf
+  ;;
+  "k3s")
+    echo "k3s option"
+    sed -i 's/%CLOUDINIT%/"cloud-init-scripts\/installK3s${count.index}.sh"/g' azure-new.tf
     sed -i 's/%COUNT%/2/g' azure-new.tf
   ;;
   *)
