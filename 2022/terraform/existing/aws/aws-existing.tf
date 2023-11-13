@@ -16,6 +16,8 @@ provider "aws" {
 
 resource "aws_vpc" "vpc" {
     cidr_block = "10.11.0.0/16"
+    assign_generated_ipv6_cidr_block = true
+
     tags = {
         Name = "rke2-k3s-networking"
     }
@@ -51,15 +53,20 @@ resource "aws_default_route_table" "myRouter" {
 
 resource "aws_subnet" "dualStack-subnet" {
     vpc_id = aws_vpc.vpc.id
-    cidr_block = "10.11.0.0/24"
+    cidr_block = "${cidrsubnet(aws_vpc.vpc.cidr_block, 8, 0)}"
     map_public_ip_on_launch = true
+
+    ipv6_cidr_block = "${cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 1)}"
+    assign_ipv6_address_on_creation = true
 }
 
-resource "aws_network_interface" "myInterface" {
-  subnet_id   = aws_subnet.dualStack-subnet.id
-  
-  //security group
-  security_groups = [aws_security_group.allow_ssh.id]
+resource "aws_subnet" "ipv6-subnet" {
+    vpc_id = aws_vpc.vpc.id
+
+    ipv6_cidr_block = "${cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 2)}"
+    assign_ipv6_address_on_creation = true
+    ipv6_native = true
+    enable_dns64 = true
 }
 
 resource "aws_security_group" "allow_ssh" {
@@ -89,16 +96,35 @@ resource "aws_security_group" "allow_ssh" {
   }
 }
 
-resource "aws_instance" "foo" {
+resource "aws_instance" "jumphost" {
+  ami           = "ami-03486abd2962c176f"
+  instance_type = "t3.small"
+
+  subnet_id = aws_subnet.dualStack-subnet.id
+
+  key_name = "mbuil"
+
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+
+  root_block_device {
+    volume_size = 14
+    volume_type = "standard"
+  }
+
+  tags = {
+    Name = "mbuil-terraform-jumphost"
+  }
+}
+
+resource "aws_instance" "ipv6VM" {
   ami           = "ami-03486abd2962c176f"
   instance_type = "t3.medium"
 
-  network_interface {
-    network_interface_id = aws_network_interface.myInterface.id
-    device_index         = 0
-  }
+  subnet_id = aws_subnet.ipv6-subnet.id
 
   key_name = "mbuil"
+
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
 
   root_block_device {
     volume_size = 20
@@ -106,7 +132,7 @@ resource "aws_instance" "foo" {
   }
 
   tags = {
-    Name = "mbuil-terraform"
+    Name = "mbuil-terraform-jumphost"
   }
 }
 
@@ -119,5 +145,9 @@ output "subnet_id" {
 }
 
 output "publicIP" {
-    value = aws_instance.foo.public_ip
+    value = aws_instance.jumphost.public_ip
+}
+
+output "ipv6IP" {
+    value = aws_instance.ipv6VM.ipv6_addresses
 }

@@ -3,3 +3,7 @@ terraform.tfstate
 terraform.tfstate.backup
 .terraform/
 existing/aws/variables.tf
+existing/aws/.terraform*
+existing/azure/.terraform*
+new/.terraform*
+new/azure-new.tf
