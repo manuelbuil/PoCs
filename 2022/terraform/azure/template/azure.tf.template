@@ -103,3 +103,6 @@ output "ipAddresses" {
   value       = azurerm_public_ip.pIP[*].ip_address
 }
 
+output "ipPrivateAddresses" {
+  value       = azurerm_network_interface.if[*].private_ip_address
+}

@@ -1,6 +1,8 @@
 #!/bin/sh
 set +x
 
+RKECLUSTERFILE="/home/manuel/rke-cluster1/cluster.yml"
+
 # changeSshConfig adds the publicIP of the new VMs to ~/.ssh/config
 changeSshConfig () {
 case $1 in
@@ -26,6 +28,21 @@ case $1 in
 esac
 }
 
+# updaterke1cluster updates the addresses of the rke1 cluster
+updaterke1cluster() {
+  pushd $1
+  ipPublic0=$(terraform output -json | jq '.ipAddresses.value[0]')
+  ipPublic1=$(terraform output -json | jq '.ipAddresses.value[1]')
+  ipPrivate0=$(terraform output -json | jq '.ipPrivateAddresses.value[0]')
+  ipPrivate1=$(terraform output -json | jq '.ipPrivateAddresses.value[1]')
+  sed -i '4s/.*/- address: '${ipPublic0}'/' ${RKECLUSTERFILE}
+  sed -i '5s/.*/  internal_address: '${ipPrivate0}'/' ${RKECLUSTERFILE}
+  sed -i '14s/.*/- address: '${ipPublic1}'/' ${RKECLUSTERFILE}
+  sed -i '15s/.*/  internal_address: '${ipPrivate1}'/' ${RKECLUSTERFILE}
+  popd
+}
+
+# applyTerraform runs terraform apply and refresh to get the publicIP of the new VMs
 applyTerraform () {
 pushd $1
 terraform apply --auto-approve
@@ -45,6 +62,7 @@ case $1 in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installDockerHelm.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
+    updaterke1cluster azure
   ;;
   "rancher")
     echo "rancher option"
