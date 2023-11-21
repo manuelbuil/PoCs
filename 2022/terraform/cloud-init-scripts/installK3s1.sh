@@ -1,6 +1,6 @@
 #!/bin/sh
 
-K3SVERSION=v1.27.6+k3s1
+K3SVERSION=v1.27.7+k3s1
 
 nextip(){
     IP=$1
@@ -47,6 +47,7 @@ EOF
 
 mkdir -p /etc/rancher/k3s
 cp config.yaml /etc/rancher/k3s/config.yaml
-mv config.yaml /home/azureuser/config.yaml
+user=$(ls /home/)
+mv config.yaml /home/${user}/config.yaml
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3SVERSION} K3S_URL=https://${result}:6443 K3S_TOKEN=secret sh -

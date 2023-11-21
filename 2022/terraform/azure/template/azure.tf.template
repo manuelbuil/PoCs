@@ -34,6 +34,13 @@ resource "azurerm_public_ip" "pIP" {
   location            = var.rgLocation
   resource_group_name = var.rgName
   allocation_method   = "Dynamic"
+
+  # ignore tags since they seem to remove important stuff when I terraform apply
+  lifecycle {
+    ignore_changes = [
+      tags,
+    ]
+  }
 }
 
 resource "azurerm_network_interface" "if" {

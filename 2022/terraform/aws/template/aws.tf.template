@@ -31,6 +31,24 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
+// elastic IP for the nat64 gateway
+resource "aws_eip" "eip" {
+  vpc = true
+
+  tags = {
+    Name = "mbuil-eip"
+  }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.eip.id
+  subnet_id     = aws_subnet.dualStack-subnet.id
+
+  tags = {
+    Name = "mbuil-nat"
+  }
+}
+
 resource "aws_default_route_table" "myRouter" {
   default_route_table_id = aws_vpc.vpc.default_route_table_id
 
@@ -43,6 +61,12 @@ resource "aws_default_route_table" "myRouter" {
   route {
     ipv6_cidr_block = "::/0"
     gateway_id = aws_internet_gateway.gw.id
+  }
+
+  // route for nat64
+  route {
+    ipv6_cidr_block = "64:ff9b::/96"
+    nat_gateway_id = aws_nat_gateway.nat.id
   }
 
   tags = {
@@ -58,6 +82,10 @@ resource "aws_subnet" "dualStack-subnet" {
 
     ipv6_cidr_block = "${cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 1)}"
     assign_ipv6_address_on_creation = true
+
+    tags = {
+        Name = "mbuil-dualStack-subnet"
+    }
 }
 
 resource "aws_subnet" "ipv6-subnet" {
@@ -67,6 +95,10 @@ resource "aws_subnet" "ipv6-subnet" {
     assign_ipv6_address_on_creation = true
     ipv6_native = true
     enable_dns64 = true
+
+    tags = {
+        Name = "mbuil-ipv6-subnet"
+    }
 }
 
 resource "aws_security_group" "allow_ssh" {
@@ -130,6 +162,8 @@ resource "aws_instance" "ipv6VM" {
     volume_size = 20
     volume_type = "standard"
   }
+
+  user_data = filebase64(%CLOUDINIT%)
 
   tags = {
     Name = "mbuil-terraform-jumphost"
