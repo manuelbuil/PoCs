@@ -1,0 +1,44 @@
+# sudo apt install nfs-common nfs-kernel-server
+# mkdir nfs
+# Add it to /etc/exports:
+# /home/azureuser/nfs               *(rw,no_root_squash)
+# sudo systemctl restart nfs-kernel-server
+#
+# On second node: 
+# apt install nfs-common
+# showmount -e $NODE1IP
+#
+# Two PVCs can't share the same PV, so we create two pv
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume
+  labels:
+    type: nfs
+spec:
+  storageClassName: storage-nfs
+  persistentVolumeReclaimPolicy: Delete
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: 10.1.1.11
+    path: "/home/azureuser/nfs"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume2
+  labels:
+    type: nfs
+spec:
+  storageClassName: storage-nfs
+  persistentVolumeReclaimPolicy: Delete
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: 10.1.1.11
+    path: "/home/azureuser/nfs"
