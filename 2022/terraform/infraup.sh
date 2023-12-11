@@ -2,6 +2,7 @@
 set +x
 
 RKECLUSTERFILE="/home/manuel/rke-cluster1/cluster.yml"
+RKECLUSTERSTATEFILE="/home/manuel/rke-cluster1/cluster.rkestate"
 
 # changeSshConfig adds the publicIP of the new VMs to ~/.ssh/config
 changeSshConfig () {
@@ -37,8 +38,9 @@ updaterke1cluster() {
   ipPrivate1=$(terraform output -json | jq '.ipPrivateAddresses.value[1]')
   sed -i '4s/.*/- address: '${ipPublic0}'/' ${RKECLUSTERFILE}
   sed -i '5s/.*/  internal_address: '${ipPrivate0}'/' ${RKECLUSTERFILE}
-  sed -i '14s/.*/- address: '${ipPublic1}'/' ${RKECLUSTERFILE}
-  sed -i '15s/.*/  internal_address: '${ipPrivate1}'/' ${RKECLUSTERFILE}
+  sed -i '12s/.*/- address: '${ipPublic1}'/' ${RKECLUSTERFILE}
+  sed -i '13s/.*/  internal_address: '${ipPrivate1}'/' ${RKECLUSTERFILE}
+  rm ${RKECLUSTERSTATEFILE}
   popd
 }
 
@@ -80,6 +82,12 @@ case $1 in
     echo "k3s-ipv6 option"
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3snoDS.sh"/g' aws/aws.tf
     applyTerraform aws
+  ;;
+  "rke2")
+    echo "rke2 option"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2${count.index}.sh"/g' azure/azure.tf
+    sed -i 's/%COUNT%/2/g' azure/azure.tf
+    applyTerraform azure
   ;;
   *)
     echo "$0 executed without arg"

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-K3SVERSION=v1.28.4+k3s1
+RKE2VERSION=v1.28.4+rke2r1
 
 nextip(){
     IP=$1
@@ -58,13 +58,14 @@ for ip in ${IPsum} ${IPsubs} ${IPsum2} ${IPsubs2}; do
 done
 
 cat <<EOF > config.yaml
-server: "https://${result}:6443"
+server: "https://${result}:9345"
 token: "secret"
 EOF
 
-mkdir -p /etc/rancher/k3s
-cp config.yaml /etc/rancher/k3s/config.yaml
+mkdir -p /etc/rancher/rke2
+cp config.yaml /etc/rancher/rke2/config.yaml
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
 
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3SVERSION} K3S_URL=https://${result}:6443 K3S_TOKEN=secret sh -
+curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=${RKE2VERSION} INSTALL_RKE2_TYPE="agent" sh -
+systemctl enable --now rke2-agent
