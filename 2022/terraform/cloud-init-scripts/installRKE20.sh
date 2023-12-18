@@ -19,3 +19,7 @@ mv config.yaml /home/${user}/config.yaml
 chown ${user}:${user} /home/azureuser/config.yaml
 curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=${RKE2VERSION} sh -
 systemctl enable --now rke2-server
+echo "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml" >> /home/azureuser/.profile
+echo "export PATH=$PATH:/var/lib/rancher/rke2/bin/" >> /home/azureuser/.profile
+echo "alias k=kubectl" >> /home/azureuser/.profile
+
