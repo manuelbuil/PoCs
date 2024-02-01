@@ -84,8 +84,27 @@ case $1 in
     applyTerraform aws
   ;;
   "rke2")
-    echo "rke2 option"
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2${count.index}.sh"/g' azure/azure.tf
+    echo "rke2 option with cni plugin $2"
+    case $2 in
+      ""|"canal")
+        echo "CNI plugin is canal"
+	cniPlugin=canal
+      ;;
+      "calico")
+        echo "CNI plugin is calico"
+	cniPlugin=calico
+      ;;
+      "cilium")
+        echo "CNI plugin is cilium"
+	cniPlugin=cilium
+      ;;
+      *)
+        echo "$2 is not a valid CNI plugin"
+	exit 1 
+      ;;
+    esac
+    sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
   ;;

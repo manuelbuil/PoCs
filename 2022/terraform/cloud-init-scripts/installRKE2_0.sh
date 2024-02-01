@@ -9,6 +9,7 @@ write-kubeconfig-mode: 644
 token: "secret"
 cluster-cidr: 10.42.0.0/16,2001:cafe:42::/56
 service-cidr: 10.43.0.0/16,2001:cafe:43::/112
+cni: cilium
 EOF
 
 mkdir -p /etc/rancher/rke2
@@ -22,4 +23,3 @@ systemctl enable --now rke2-server
 echo "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml" >> /home/azureuser/.profile
 echo "export PATH=$PATH:/var/lib/rancher/rke2/bin/" >> /home/azureuser/.profile
 echo "alias k=kubectl" >> /home/azureuser/.profile
-
