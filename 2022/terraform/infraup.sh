@@ -103,6 +103,10 @@ case $1 in
 	exit 1 
       ;;
     esac
+    if [ "$3" == "multus" ];then
+	    echo "Multus included!"
+	    cniPlugin="$3,${cniPlugin}"
+    fi
     sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
