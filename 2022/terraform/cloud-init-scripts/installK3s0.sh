@@ -18,4 +18,4 @@ cp config.yaml /etc/rancher/k3s/config.yaml
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
 chown ${user}:${user} /home/azureuser/config.yaml
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3SVERSION} sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -

@@ -60,7 +60,7 @@ done
 cat <<EOF > config.yaml
 server: "https://${result}:6443"
 token: "secret"
-# curl -sfL https://get.k3s.io | K3S_URL=https://myserver:6443 K3S_TOKEN=mynodetoken sh -
+# curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" K3S_URL=https://myserver:6443 K3S_TOKEN=mynodetoken sh -
 EOF
 
 mkdir -p /etc/rancher/k3s
