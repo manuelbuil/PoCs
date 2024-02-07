@@ -9,6 +9,7 @@ write-kubeconfig-mode: 644
 token: "secret"
 cluster-cidr: 10.42.0.0/16,2001:cafe:42::/56
 service-cidr: 10.43.0.0/16,2001:cafe:43::/112
+# curl -sfL https://get.k3s.io | sh -
 EOF
 
 mkdir -p /etc/rancher/k3s
