@@ -1,0 +1,14 @@
+variable "region" {
+  type        = string
+  default     = "eu-south-2"
+}
+
+variable "access_key" {
+  type        = string
+  default     = "AKIxxxxx"
+}
+
+variable "secret_key" {
+  type        = string
+  default     = "9TPwxxxx"
+}

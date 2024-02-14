@@ -12,6 +12,7 @@ mkdir -p /etc/rancher/k3s
 cp config.yaml /etc/rancher/k3s/config.yaml
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.26.9+k3s1 sh -
 sleep 30
+echo "alias k=kubectl" >> /home/azureuser/.profile
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 kubectl create namespace cattle-system

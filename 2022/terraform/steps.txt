@@ -15,3 +15,9 @@ terraform import azurerm_resource_group.rg /subscriptions/f5e1bf9e-ec79-4fc5-835
 terraform import azurerm_virtual_network.vn /subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking/providers/Microsoft.Network/virtualNetworks/rke2-k3s-networking-vnet
 terraform import azurerm_subnet.sn /subscriptions/f5e1bf9e-ec79-4fc5-8354-53e2fcc0d99f/resourceGroups/rke2-k3s-networking/providers/Microsoft.Network/virtualNetworks/rke2-k3s-networking-vnet/subnets/IPv6-default
 terraform apply
+
+# Accessing the UI
+mbuix@azureemea.geekos.io via Okta
+
+# Make aws work
+you need a working variables.tf. Check aws/variables.tf.example

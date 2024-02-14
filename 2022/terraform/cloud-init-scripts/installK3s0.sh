@@ -1,5 +1,5 @@
 #!/bin/sh
-K3SVERSION=v1.28.4+k3s1
+#K3SVERSION=v1.28.4+k3s1
 apt update
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -19,3 +19,5 @@ user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
 chown ${user}:${user} /home/azureuser/config.yaml
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -
+
+echo "alias k=kubectl" >> /home/azureuser/.profile
