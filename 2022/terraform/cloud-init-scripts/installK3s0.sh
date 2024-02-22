@@ -20,7 +20,7 @@ cp config.yaml /etc/rancher/k3s/config.yaml
 
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
-chown ${user}:${user} /home/azureuser/config.yaml
+chown ${user}:${user} /home/${user}/config.yaml
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -
 
 echo "alias k=kubectl" >> /home/azureuser/.profile

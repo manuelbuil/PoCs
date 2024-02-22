@@ -61,5 +61,6 @@ mkdir -p /etc/rancher/k3s
 cp config.yaml /etc/rancher/k3s/config.yaml
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
+chown ${user}:${user} /home/${user}/config.yaml
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" K3S_URL=https://${result}:6443 K3S_TOKEN=secret sh -
