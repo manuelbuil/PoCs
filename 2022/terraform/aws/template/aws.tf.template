@@ -14,6 +14,7 @@ provider "aws" {
     secret_key = var.secret_key
 }
 
+// the netwok where instances will connect
 resource "aws_vpc" "vpc" {
     cidr_block = "10.11.0.0/16"
     assign_generated_ipv6_cidr_block = true
@@ -23,6 +24,7 @@ resource "aws_vpc" "vpc" {
     }
 }
 
+// what will provide internet access to the vpc
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc.id
 
@@ -52,12 +54,13 @@ resource "aws_nat_gateway" "nat" {
 resource "aws_default_route_table" "myRouter" {
   default_route_table_id = aws_vpc.vpc.default_route_table_id
 
-
+  // All traffic (except for the vpc traffic) goes out using the internet gateway
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
 
+  // All traffic (except for the vpc traffic) goes out using the internet gateway
   route {
     ipv6_cidr_block = "::/0"
     gateway_id = aws_internet_gateway.gw.id
