@@ -2,6 +2,9 @@
 #K3SVERSION=v1.28.4+k3s1
 apt update
 
+# Little server for the other VM to find me
+echo "hola" | nc -l 43210 &
+
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 cat <<EOF > config.yaml

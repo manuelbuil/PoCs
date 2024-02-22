@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 K3SVERSION=v1.28.4+k3s1
 
 nextip(){
     IP=$1
     IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
-    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
+    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + $2 ))`)
     NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
     echo "$NEXT_IP"
 }
@@ -13,26 +13,22 @@ nextip(){
 previp(){
     IP=$1
     IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
-    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX - 1 ))`)
+    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX - $2 ))`)
     NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
     echo "$NEXT_IP"
 }
 
-nextip2(){
+listCloserIPs(){
     IP=$1
-    IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
-    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 2 ))`)
-    NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
-    echo "$NEXT_IP"
+    local -a IPs
+    for i in $(seq 1 10); do
+        IPnext=$(nextip ${IP} ${i})
+        IPprev=$(previp ${IP} ${i})
+        IPs+=(${IPnext} ${IPprev})
+    done
+    echo ${IPs[@]}
 }
 
-previp2(){
-    IP=$1
-    IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
-    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX - 2 ))`)
-    NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
-    echo "$NEXT_IP"
-}
 apt update
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -41,19 +37,17 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 myIP=$(ip addr show $(ip route | awk '/default/ { print $5 }') | grep "inet" | head -n 1 | awk '/inet/ {print $2}' | cut -d'/' -f1)
 echo This my myIP: ${myIP}
 
-IPsum=$(nextip ${myIP})
-IPsubs=$(previp ${myIP})
-IPsum2=$(nextip2 ${myIP})
-IPsubs2=$(previp2 ${myIP})
+# Message to look for
+expected_message="hola"
 
-for ip in ${IPsum} ${IPsubs} ${IPsum2} ${IPsubs2}; do
-	ping -c 2 -W 2 ${ip}
-	if [ $? -eq 0 ]; then
-        	echo PING WORKED
+for ip in $(listCloserIPs ${myIP}); do
+    response=$(nc -w 3 ${ip} 43210)
+    if [[ "$response" == "$expected_message" ]]; then
+        	echo SERVER FOUND ${ip}
                 result=${ip}
                 break
 	else
-        	echo PING FAILED
+        	echo SERVER NOT FOUND ${ip}
 	fi
 done
 
@@ -68,4 +62,4 @@ cp config.yaml /etc/rancher/k3s/config.yaml
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
 
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3SVERSION} K3S_URL=https://${result}:6443 K3S_TOKEN=secret sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" K3S_URL=https://${result}:6443 K3S_TOKEN=secret sh -
