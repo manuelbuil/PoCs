@@ -68,13 +68,13 @@ case $1 in
   ;;
   "rancher")
     echo "rancher option"
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher.sh"/g' azure/azure.tf
-    sed -i 's/%COUNT%/1/g' azure/azure.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' azure/azure.tf
+    sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
   ;;
   "k3s")
     echo "k3s option"
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s${count.index}.sh"/g' azure/azure.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
   ;;
