@@ -40,6 +40,9 @@ echo This my myIP: ${myIP}
 # Message to look for
 expected_message="hola"
 
+# Avoid a race condition
+sleep 10
+
 for ip in $(listCloserIPs ${myIP}); do
     response=$(nc -w 3 ${ip} 43210)
     if [[ "$response" == "$expected_message" ]]; then

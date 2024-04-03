@@ -98,6 +98,10 @@ case $1 in
         echo "CNI plugin is cilium"
 	cniPlugin=cilium
       ;;
+      "flannel")
+        echo "CNI plugin is flannel"
+	cniPlugin=flannel
+      ;;
       *)
         echo "$2 is not a valid CNI plugin"
 	exit 1 
@@ -110,6 +114,27 @@ case $1 in
     sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
+    applyTerraform azure
+  ;;
+  "windows")
+    echo "rke2 and windows with cni plugin $2"
+    case $2 in
+      ""|"calico")
+        echo "CNI plugin is calico"
+        cniPlugin=calico
+      ;;
+      "flannel")
+        echo "CNI plugin is flannel"
+        cniPlugin=flannel
+      ;;
+      *)
+        echo "$2 is not a valid CNI plugin"
+        exit 1
+      ;;
+    esac
+    cp azure/template/azure.tf.windows.template azure/azure.tf
+    sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
     applyTerraform azure
   ;;
   *)

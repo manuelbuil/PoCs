@@ -40,6 +40,9 @@ listCloserIPs(){
 # Message to look for
 expected_message="hola"
 
+# Avoid a race condition
+sleep 10
+
 for ip in $(listCloserIPs ${myIP}); do
     response=$(nc -w 3 ${ip} 43210)
     if [[ "$response" == "$expected_message" ]]; then
@@ -54,7 +57,7 @@ done
 cat <<EOF > config.yaml
 server: "https://${result}:9345"
 token: "secret"
-# curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_TYPE="agent" sh -
+# curl -sfL https://get.rke2.io | sudo INSTALL_K3S_CHANNEL="latest" INSTALL_RKE2_TYPE="agent" sh -
 EOF
 
 mkdir -p /etc/rancher/rke2

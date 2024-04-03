@@ -12,8 +12,8 @@ write-kubeconfig-mode: 644
 token: "secret"
 cluster-cidr: 10.42.0.0/16,2001:cafe:42::/56
 service-cidr: 10.43.0.0/16,2001:cafe:43::/112
-cni: canal
-# curl -sfL https://get.rke2.io | sudo sh -
+cni: flannel
+# curl -sfL https://get.rke2.io | sudo INSTALL_K3S_CHANNEL="latest" sh -
 EOF
 
 mkdir -p /etc/rancher/rke2
