@@ -41,7 +41,7 @@ echo This my myIP: ${myIP}
 expected_message="hola"
 
 # Avoid a race condition
-sleep 10
+sleep 15
 
 for ip in $(listCloserIPs ${myIP}); do
     response=$(nc -w 3 ${ip} 43210)
