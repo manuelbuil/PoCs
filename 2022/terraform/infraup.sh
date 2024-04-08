@@ -136,8 +136,8 @@ case $1 in
       ;;
     esac
     cp azure/template/azure.tf.windows.template azure/azure.tf
-    sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
+    sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2NoDS_0.sh
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2NoDS_${count.index}.sh"/g' azure/azure.tf
     applyTerraform azure
   ;;
   *)

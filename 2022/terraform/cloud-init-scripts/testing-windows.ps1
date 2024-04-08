@@ -52,4 +52,15 @@ token: "secret"
 # C:\usr\local\bin\rke2.exe agent service --add
 # Start-Service -Name 'rke2'
 # Get-WinEvent -LogName Application -FilterXPath "*[System[Provider[@Name='rke2']]]" -MaxEvents 120 | Sort-Object TimeCreated | Select-Object TimeCreated, @{Name='ReplacementStrings';Expression={$_.Properties[0].Value}} | Format-Table -Wrap
-'@ | Out-File -FilePath C:\Users\azureuser\config.yaml
+'@ | Out-File -FilePath config.yaml
+
+cp config.yaml C:\Users\azureuser\config.yaml
+cp config.yaml /etc/rancher/rke2/
+
+# Make sure the PATH is correctly set
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::Machine) + ";c:\var\lib\rancher\rke2\bin;c:\usr\local\bin",
+    [EnvironmentVariableTarget]::Machine)
+
+Restart-Computer
