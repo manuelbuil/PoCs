@@ -141,6 +141,6 @@ case $1 in
     applyTerraform azure
   ;;
   *)
-    echo "$0 executed without arg"
+    echo "$0 executed without arg. Please use rke1, rancher, k3s, k3s-ipv6, rke2 or windows"
     exit 1
 esac

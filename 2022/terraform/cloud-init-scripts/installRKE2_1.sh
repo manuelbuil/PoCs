@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RKE2VERSION=v1.28.4+rke2r1
+#RKE2VERSION=v1.28.4+rke2r1
 
 nextip(){
     IP=$1

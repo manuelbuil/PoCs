@@ -51,6 +51,7 @@ token: "secret"
 # cp config.yaml /etc/rancher/rke2/config.yaml
 # C:\usr\local\bin\rke2.exe agent service --add
 # Start-Service -Name 'rke2'
+# ctr -n k8s.io c ls
 # Get-WinEvent -LogName Application -FilterXPath "*[System[Provider[@Name='rke2']]]" -MaxEvents 120 | Sort-Object TimeCreated | Select-Object TimeCreated, @{Name='ReplacementStrings';Expression={$_.Properties[0].Value}} | Format-Table -Wrap
 '@ | Out-File -FilePath config.yaml
 
