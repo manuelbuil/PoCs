@@ -24,3 +24,7 @@ chown ${user}:${user} /home/${user}/config.yaml
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -
 
 echo "alias k=kubectl" >> /home/azureuser/.profile
+
+wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2023/windows-deployment.yml
+wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/multitool.yaml
+wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/httpbin.yaml
