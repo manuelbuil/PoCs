@@ -1,3 +1,7 @@
+param(
+    [string]$IP = "127.0.0.1"
+)
+
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 Start-Service sshd
 Set-Service -Name sshd -StartupType 'Automatic'
@@ -43,8 +47,8 @@ $acl | Set-Acl
 ./fix-ssh-keys.ps1
 Restart-Service sshd
 
-@'
-server: "https://${IP}:9345"
+$config = @'
+server: "https://THEIP:9345"
 token: "secret"
 # $env:PATH+=";c:\var\lib\rancher\rke2\bin;c:\usr\local\bin"
 # .\rke2-install.ps1 -Channel latest
@@ -53,10 +57,12 @@ token: "secret"
 # Start-Service -Name 'rke2'
 # ctr -n k8s.io c ls
 # Get-WinEvent -LogName Application -FilterXPath "*[System[Provider[@Name='rke2']]]" -MaxEvents 120 | Sort-Object TimeCreated | Select-Object TimeCreated, @{Name='AllProperties';Expression={($_.Properties | ForEach-Object { $_.Value }) -join ', '}} | Format-Table -Wrap
-'@ | Out-File -FilePath config.yaml
+'@
 
-cp config.yaml C:\Users\azureuser\config.yaml
-cp config.yaml /etc/rancher/rke2/
+$config = $config -replace 'THEIP', $IP
+$config | Out-File -FilePath C:\Users\azureuser\config.yaml
+
+cp C:\Users\azureuser\config.yaml /etc/rancher/rke2/
 
 # Make sure the PATH is correctly set
 [Environment]::SetEnvironmentVariable(
