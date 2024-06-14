@@ -1,5 +1,4 @@
 #!/bin/sh
-#K3SVERSION=v1.28.4+k3s1
 apt update
 
 # Little server for the other VM to find me
@@ -25,6 +24,11 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -
 
 echo "alias k=kubectl" >> /home/azureuser/.profile
 
+# Add the typical manifests
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2023/windows-deployment.yml
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/multitool.yaml
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/httpbin.yaml
+mv windows-deployment.yml multitool.yaml httpbin.yaml /home/azureuser/
+
+# Change the owner of all files in /home/azureuser/
+find /home/azureuser/ -type f -exec chown ${user}:${user} {} \;
