@@ -139,7 +139,9 @@ case $1 in
     sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2NoDS_0.sh
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2NoDS_${count.index}.sh"/g' azure/azure.tf
     applyTerraform azure
-    echo "Execute ssh azure-windows 'powershell.exe -File C:\AzureData\install.ps1 MYIP'"
+    echo "ssh azure-windows 'powershell.exe -File C:\AzureData\install.ps1 MYIP'"
+    echo "ssh azure-windows 'powershell.exe C:\usr\local\bin\rke2.exe agent service --add'"
+    echo "ssh azure-windows 'powershell.exe Start-Service -Name rke2'"
   ;;
   *)
     echo "$0 executed without arg. Please use rke1, rancher, k3s, k3s-ipv6, rke2 or windows"
