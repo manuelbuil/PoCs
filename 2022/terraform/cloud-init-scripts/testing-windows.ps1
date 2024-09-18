@@ -70,3 +70,18 @@ cp C:\Users\azureuser\config.yaml /etc/rancher/rke2/
     [EnvironmentVariableTarget]::Machine)
 
 Restart-Computer
+
+@'
+# Define the username
+$username = "azureuser"
+
+# Prompt for the password
+$password = Read-Host "Enter the password" -AsSecureString
+
+# Set the password for the user
+Set-LocalUser -Name $username -Password $password
+'@
+
+@'
+xfreerdp /u:azureuser /p:Linux12345678 /v:20.73.81.44
+'@

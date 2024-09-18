@@ -5,7 +5,7 @@ metadata:
     app: multitool
   name: multitool-deployment
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: multitool
@@ -21,6 +21,8 @@ spec:
         securityContext:
           capabilities:
             add: ["NET_ADMIN","NET_RAW"]
+      nodeSelector:
+        kubernetes.io/os: linux
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
