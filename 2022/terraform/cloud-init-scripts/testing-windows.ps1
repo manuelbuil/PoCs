@@ -83,5 +83,5 @@ Set-LocalUser -Name $username -Password $password
 '@
 
 @'
-xfreerdp /u:azureuser /p:Linux12345678 /v:20.73.81.44
+xfreerget-vdp /u:azureuser /p:Linux12345678 /v:20.73.81.44
 '@

@@ -8,15 +8,36 @@ RKECLUSTERSTATEFILE="/home/manuel/rke-cluster1/cluster.rkestate"
 changeSshConfig () {
 case $1 in
   "azure")
-    ip0=$(terraform output -json | jq '.ipAddresses.value[0]')
-    ip1=$(terraform output -json | jq '.ipAddresses.value[1]')
-    ip2=$(terraform output -json | jq '.ipAddresses.value[2]')
-    echo $ip0
-    echo $ip1
-    echo $ip2
-    sed -i '/^Host azure-ubuntu/{n;s/Hostname .*/Hostname '$ip0'/}' ~/.ssh/config
-    sed -i '/^Host azure-ubuntu2/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
-    sed -i '/^Host azure-windows/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
+    case $2 in
+      "HA")
+        ip0=$(terraform output -json | jq '.ipAddresses.value[0]')
+        ip1=$(terraform output -json | jq '.ipAddresses.value[1]')
+        ip2=$(terraform output -json | jq '.ipAddresses.value[2]')
+        ip3=$(terraform output -json | jq '.ipAddresses.value[3]')
+        ip4=$(terraform output -json | jq '.ipAddresses.value[4]')
+        echo $ip0
+        echo $ip1
+        echo $ip2
+        echo $ip3
+        echo $ip4
+        sed -i '/^Host azure-ubuntu/{n;s/Hostname .*/Hostname '$ip0'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu2/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu3/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu4/{n;s/Hostname .*/Hostname '$ip3'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu5/{n;s/Hostname .*/Hostname '$ip4'/}' ~/.ssh/config
+      ;;
+      *)
+        ip0=$(terraform output -json | jq '.ipAddresses.value[0]')
+        ip1=$(terraform output -json | jq '.ipAddresses.value[1]')
+        ip2=$(terraform output -json | jq '.ipAddresses.value[2]')
+        echo $ip0
+        echo $ip1
+        echo $ip2
+        sed -i '/^Host azure-ubuntu/{n;s/Hostname .*/Hostname '$ip0'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu2/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu3/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
+        sed -i '/^Host azure-windows/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
+    esac
   ;;
   "aws")
     ipv6=$(terraform output -json | jq '.ipv6IP.value[0]')
@@ -54,7 +75,7 @@ terraform apply --auto-approve
 sleep 10
 terraform refresh
 sleep 5
-changeSshConfig $1
+changeSshConfig $1 $2
 popd
 }
 
@@ -74,11 +95,19 @@ case $1 in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
+    echo "Access ${ip0//\"/}.sslip.io in your browser"
+  ;;
+  "rancher-prime")
+    echo "rancher prime option"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' azure/azure.tf
+    sed -i 's/%COUNT%/2/g' azure/azure.tf
+    applyTerraform azure
+    echo "Access ${ip0//\"/}.sslip.io in your browser"
   ;;
   "k3s")
     echo "k3s option"
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' azure/azure.tf
-    sed -i 's/%COUNT%/2/g' azure/azure.tf
+    sed -i 's/%COUNT%/3/g' azure/azure.tf
     applyTerraform azure
   ;;
   "k3s-ipv6")
@@ -142,6 +171,12 @@ case $1 in
     echo "ssh azure-windows 'powershell.exe -File C:\AzureData\install.ps1 MYIP'"
     echo "ssh azure-windows 'powershell.exe C:\usr\local\bin\rke2.exe agent service --add'"
     echo "ssh azure-windows 'powershell.exe Start-Service -Name rke2'"
+  ;;
+  "rke2-ha")
+    echo "rke2 in HA mode"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' azure/azure.tf
+    sed -i 's/%COUNT%/5/g' azure/azure.tf
+    applyTerraform azure HA
   ;;
   *)
     echo "$0 executed without arg. Please use rke1, rancher, k3s, k3s-ipv6, rke2 or windows"

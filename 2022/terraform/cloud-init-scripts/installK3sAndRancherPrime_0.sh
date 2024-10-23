@@ -18,7 +18,7 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.29.9+k3s1 sh -
 sleep 30
 echo "alias k=kubectl" >> /home/azureuser/.profile
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+helm repo add rancher-prime https://charts.rancher.com/server-charts/prime
 kubectl create namespace cattle-system
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.crds.yaml
 helm repo add jetstack https://charts.jetstack.io
@@ -27,4 +27,4 @@ helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --create-namespace
 sleep 20
-helm install rancher rancher-latest/rancher --namespace cattle-system --set hostname=$myIP.sslip.io --set replicas=1 --set bootstrapPassword=linux
+helm install rancher rancher-prime/rancher --namespace cattle-system --set hostname=$myIP.sslip.io --set replicas=1 --set bootstrapPassword=linux
