@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: ollama
+    spec:
+      runtimeClassName: nvidia
+      containers:
+      - env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: all
+        - name: PATH
+          value: /usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        image: ollama/ollama:0.3.14
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "while ! /bin/ollama ps > /dev/null 2>&1; do\n  sleep 5\ndone\necho
+                \"llama3\" | xargs -n1 /bin/ollama pull \n"
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: ollama
+        ports:
+        - containerPort: 11434
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-data
+      dnsPolicy: ClusterFirst
+      runtimeClassName: nvidia
+      volumes:
+      - emptyDir: {}
+        name: ollama-data

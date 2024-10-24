@@ -35,7 +35,7 @@ case $1 in
         echo $ip2
         sed -i '/^Host azure-ubuntu/{n;s/Hostname .*/Hostname '$ip0'/}' ~/.ssh/config
         sed -i '/^Host azure-ubuntu2/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
-        sed -i '/^Host azure-ubuntu3/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
+        sed -i '/^Host azure-ubuntu3/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
         sed -i '/^Host azure-windows/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
     esac
   ;;
