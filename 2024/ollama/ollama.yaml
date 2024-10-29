@@ -66,3 +66,17 @@ spec:
       volumes:
       - emptyDir: {}
         name: ollama-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  labels:
+    app: ollama
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 11434
+  selector:
+    app.kubernetes.io/component: ollama

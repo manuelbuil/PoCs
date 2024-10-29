@@ -1,0 +1,15 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: open-webui
+  namespace: kube-system
+spec:
+  repo: https://helm.openwebui.com/
+  chart: open-webui
+  targetNamespace: default
+  valuesContent: |-
+    ollama:
+      enabled: false
+    pipelines:
+      enabled: false
+

@@ -61,3 +61,18 @@ spec:
       volumes:
       - emptyDir: {}
         name: ollama-data-slow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-slow
+  labels:
+    app: ollama-slow
+spec:
+  ports:
+  - name: http
+    port: 8001
+    targetPort: 11434
+  selector:
+    app.kubernetes.io/component: ollama-slow
+
