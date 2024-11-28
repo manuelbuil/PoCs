@@ -23,15 +23,15 @@ mv config.yaml /home/${user}/config.yaml
 chown ${user}:${user} /home/${user}/config.yaml
 curl -sfL https://get.rke2.io | INSTALL_RKE2_CHANNEL="latest" sh -
 systemctl enable --now rke2-server
-echo "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml" >> /home/azureuser/.profile
-echo "export PATH=$PATH:/var/lib/rancher/rke2/bin/" >> /home/azureuser/.profile
-echo "alias k=kubectl" >> /home/azureuser/.profile
+echo "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml" >> /home/${user}/.profile
+echo "export PATH=$PATH:/var/lib/rancher/rke2/bin/" >> /home/${user}/.profile
+echo "alias k=kubectl" >> /home/${user}/.profile
 
 # Add the typical manifests
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2023/windows-deployment.yml
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/multitool.yaml
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/httpbin.yaml
-mv windows-deployment.yml multitool.yaml httpbin.yaml /home/azureuser/
+mv windows-deployment.yml multitool.yaml httpbin.yaml /home/${user}/
 
-# Change the owner of all files in /home/azureuser/
-find /home/azureuser/ -type f -exec chown ${user}:${user} {} \;
+# Change the owner of all files
+find /home/${user}/ -type f -exec chown ${user}:${user} {} \;

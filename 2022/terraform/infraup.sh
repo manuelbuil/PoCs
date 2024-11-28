@@ -42,10 +42,21 @@ case $1 in
   "aws")
     ipv6=$(terraform output -json | jq '.ipv6IP.value[0]')
     ipv4jump=$(terraform output -json | jq '.publicIP.value')
-    echo $ipv6
-    echo $ipv4jump
-    sed -i '/^Host aws-ubuntu/{n;s/Hostname .*/Hostname '$ipv4jump'/}' ~/.ssh/config
-    sed -i '/^Host aws-ubuntu2/{n;s/Hostname .*/Hostname '$ipv6'/}' ~/.ssh/config
+    ipv4public1=$(terraform output -json | jq '.publicIP.value[0]')
+    ipv4public2=$(terraform output -json | jq '.publicIP.value[1]')
+    ipv4public3=$(terraform output -json | jq '.publicIP.value[2]')
+    ipv4public4=$(terraform output -json | jq '.publicIP.value[3]')
+    ipv4public5=$(terraform output -json | jq '.publicIP.value[4]')
+    echo $ipv4public1
+    echo $ipv4public2
+    echo $ipv4public3
+    echo $ipv4public4
+    echo $ipv4public5
+    sed -i '/^Host aws-ubuntu/{n;s/Hostname .*/Hostname '$ipv4public1'/}' ~/.ssh/config
+    sed -i '/^Host aws-ubuntu2/{n;s/Hostname .*/Hostname '$ipv4public2'/}' ~/.ssh/config
+    sed -i '/^Host aws-ubuntu3/{n;s/Hostname .*/Hostname '$ipv4public3'/}' ~/.ssh/config
+    sed -i '/^Host aws-ubuntu4/{n;s/Hostname .*/Hostname '$ipv4public4'/}' ~/.ssh/config
+    sed -i '/^Host aws-ubuntu5/{n;s/Hostname .*/Hostname '$ipv4public5'/}' ~/.ssh/config
   ;;
   *)
     echo "Something went wrong in the ssh"
@@ -97,6 +108,13 @@ case $1 in
     applyTerraform azure
     echo "Access ${ip0//\"/}.sslip.io in your browser"
   ;;
+  "rancher-aws")
+    echo "rancher-aws option"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/2/g' aws/aws.tf
+    applyTerraform aws
+    echo "Access ${ipv4public1//\"/}.sslip.io in your browser"
+  ;;
   "rancher-prime")
     echo "rancher prime option"
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' azure/azure.tf
@@ -104,11 +122,24 @@ case $1 in
     applyTerraform azure
     echo "Access ${ip0//\"/}.sslip.io in your browser"
   ;;
+  "rancher-prime-aws")
+    echo "rancher prime option"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/2/g' aws/aws.tf
+    applyTerraform aws
+    echo "Access ${ipv4public1//\"/}.sslip.io in your browser"
+  ;;
   "k3s")
     echo "k3s option"
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/3/g' azure/azure.tf
     applyTerraform azure
+  ;;
+  "k3s-aws")
+    echo "k3s option"
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/3/g' aws/aws.tf
+    applyTerraform aws
   ;;
   "k3s-ipv6")
     echo "k3s-ipv6 option"
@@ -144,9 +175,9 @@ case $1 in
 	    cniPlugin="$3,${cniPlugin}"
     fi
     sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' azure/azure.tf
-    sed -i 's/%COUNT%/2/g' azure/azure.tf
-    applyTerraform azure
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/2/g' aws/aws.tf
+    applyTerraform aws
   ;;
   "windows")
     echo "rke2 and windows with cni plugin $2"
@@ -174,11 +205,11 @@ case $1 in
   ;;
   "rke2-ha")
     echo "rke2 in HA mode"
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' azure/azure.tf
-    sed -i 's/%COUNT%/5/g' azure/azure.tf
-    applyTerraform azure HA
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/5/g' aws/aws.tf
+    applyTerraform aws HA
   ;;
   *)
-    echo "$0 executed without arg. Please use rke1, rancher, k3s, k3s-ipv6, rke2 or windows"
+    echo "$0 executed without arg. Please use rke1, rancher, rancher-prime, k3s, k3s-ipv6, rke2 or windows"
     exit 1
 esac

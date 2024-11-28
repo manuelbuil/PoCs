@@ -3,7 +3,7 @@ apt update
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-myIP=$(curl ifconfig.me)
+myIP=$(curl -4 ifconfig.me)
 cat <<EOF > config.yaml
 write-kubeconfig-mode: 644
 token: "secret"
@@ -16,7 +16,7 @@ user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.29.9+k3s1 sh -
 sleep 30
-echo "alias k=kubectl" >> /home/azureuser/.profile
+echo "alias k=kubectl" >> /home/${user}/.profile
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 helm repo add rancher-prime https://charts.rancher.com/server-charts/prime
 kubectl create namespace cattle-system

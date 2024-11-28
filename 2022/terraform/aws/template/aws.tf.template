@@ -18,6 +18,9 @@ provider "aws" {
 resource "aws_vpc" "vpc" {
     cidr_block = "10.11.0.0/16"
     assign_generated_ipv6_cidr_block = true
+    
+    enable_dns_support = true
+    enable_dns_hostnames = true
 
     tags = {
         Name = "rke2-k3s-networking"
@@ -30,24 +33,6 @@ resource "aws_internet_gateway" "gw" {
 
   tags = {
     Name = "mbuil-igw"
-  }
-}
-
-// elastic IP for the nat64 gateway
-resource "aws_eip" "eip" {
-  vpc = true
-
-  tags = {
-    Name = "mbuil-eip"
-  }
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.eip.id
-  subnet_id     = aws_subnet.dualStack-subnet.id
-
-  tags = {
-    Name = "mbuil-nat"
   }
 }
 
@@ -66,12 +51,6 @@ resource "aws_default_route_table" "myRouter" {
     gateway_id = aws_internet_gateway.gw.id
   }
 
-  // route for nat64
-  route {
-    ipv6_cidr_block = "64:ff9b::/96"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-
   tags = {
     Name = "mbuil-default-route"
   }
@@ -80,7 +59,7 @@ resource "aws_default_route_table" "myRouter" {
 
 resource "aws_subnet" "dualStack-subnet" {
     vpc_id = aws_vpc.vpc.id
-    cidr_block = "${cidrsubnet(aws_vpc.vpc.cidr_block, 8, 0)}"
+    cidr_block = "${cidrsubnet(aws_vpc.vpc.cidr_block, 12, 0)}"
     map_public_ip_on_launch = true
 
     ipv6_cidr_block = "${cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 1)}"
@@ -91,22 +70,9 @@ resource "aws_subnet" "dualStack-subnet" {
     }
 }
 
-resource "aws_subnet" "ipv6-subnet" {
-    vpc_id = aws_vpc.vpc.id
-
-    ipv6_cidr_block = "${cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 2)}"
-    assign_ipv6_address_on_creation = true
-    ipv6_native = true
-    enable_dns64 = true
-
-    tags = {
-        Name = "mbuil-ipv6-subnet"
-    }
-}
-
-resource "aws_security_group" "allow_ssh" {
-  name        = "allow_ssh"
-  description = "Allow SSH inbound traffic"
+resource "aws_security_group" "allow_k8s" {
+  name        = "allow_k8s"
+  description = "Allow K8s communications"
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
@@ -126,40 +92,141 @@ resource "aws_security_group" "allow_ssh" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  ingress {
+    description      = "HTTP from VPC"
+    to_port          = 80
+    from_port        = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "HTTPS from VPC"
+    to_port          = 443
+    from_port        = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description = "Find nodes"
+    from_port   = 43210
+    to_port     = 43210
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  ingress {
+    description = "Supervisor connection"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  ingress {
+    description = "Connection to kubelet"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  // vxlan
+  ingress {
+    description = "vxlan"
+    from_port   = 8472
+    to_port     = 8472
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  // vxlan
+  ingress {
+    description = "vxlan"
+    from_port   = 4789
+    to_port     = 8472
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  ingress {
+    description = "Supervisor RKE2"
+    from_port   = 9345
+    to_port     = 9345
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  // etcd
+  ingress {
+    description = "etcd"
+    from_port   = 2379
+    to_port     = 2381
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  // wireguard
+  ingress {
+    description = "wireguard"
+    from_port   = 51820
+    to_port     = 51821
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
+  // port 9099 for Calico healthcheck
+  ingress {
+    description = "Calico healthcheck"
+    from_port   = 9098
+    to_port     = 9099
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]   
+  }
+
+  // Cilium healthcheck
+  ingress {
+    description = "Cilium healthcheck"
+    from_port   = 4240
+    to_port     = 4240
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]   
+  }
+
+  // Typha
+  ingress {
+    description = "Typha"
+    from_port   = 5473
+    to_port     = 5473
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]   
+  }
+
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = [aws_subnet.dualStack-subnet.cidr_block]
+  }
+
   tags = {
-    Name = "allow_ssh"
+    Name = "allow_k8s"
   }
 }
 
-resource "aws_instance" "jumphost" {
-  ami           = "ami-03486abd2962c176f"
-  instance_type = "t3.small"
+resource "aws_instance" "myInstance" {
+  count         = %COUNT%
+  ami           = "ami-0bb457e0c5095fa9d"
+  instance_type = "t3.medium"
 
   subnet_id = aws_subnet.dualStack-subnet.id
 
   key_name = "mbuil"
 
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-
-  root_block_device {
-    volume_size = 14
-    volume_type = "standard"
-  }
-
-  tags = {
-    Name = "mbuil-terraform-jumphost"
-  }
-}
-
-resource "aws_instance" "ipv6VM" {
-  ami           = "ami-03486abd2962c176f"
-  instance_type = "t3.medium"
-
-  subnet_id = aws_subnet.ipv6-subnet.id
-
-  key_name = "mbuil"
-
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids = [aws_security_group.allow_k8s.id]
 
   root_block_device {
     volume_size = 20
@@ -169,7 +236,7 @@ resource "aws_instance" "ipv6VM" {
   user_data = filebase64(%CLOUDINIT%)
 
   tags = {
-    Name = "mbuil-terraform-jumphost"
+    Name = "terraform-mbuil-vm${count.index}"
   }
 }
 
@@ -182,9 +249,5 @@ output "subnet_id" {
 }
 
 output "publicIP" {
-    value = aws_instance.jumphost.public_ip
-}
-
-output "ipv6IP" {
-    value = aws_instance.ipv6VM.ipv6_addresses
+    value = aws_instance.myInstance[*].public_ip
 }
