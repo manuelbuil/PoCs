@@ -30,7 +30,8 @@ getServerIP(){
     expected_message="hola"
 
     # Avoid a race condition
-    sleep 15
+    sleep_time=$((RANDOM % 41 + 10))
+    sleep $sleep_time
 
     for ip in $(listCloserIPs $1); do
         response=$(nc -w 3 ${ip} 43210)
