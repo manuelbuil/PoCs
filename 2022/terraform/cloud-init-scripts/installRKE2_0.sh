@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 apt update
 
 # Little server for the other VM to find me

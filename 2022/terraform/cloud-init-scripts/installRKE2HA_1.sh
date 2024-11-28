@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 apt update
 
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/refs/heads/main/2022/terraform/cloud-init-scripts/utils.sh -O /tmp/utils.sh
