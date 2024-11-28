@@ -1,4 +1,4 @@
-import datetime, subprocess, os, sys, telegram
+import datetime, subprocess, os, sys, telegram, time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -26,22 +26,20 @@ def time_for_alive_message():
 # Read credentials from a file
 def read_credentials(filename):
   """Reads confidential information from a file in the same directory as the parser.py.
-  That file must have four lines with username, password, telegram_bot_token, telegram_chat_id
+  That file must have four lines with telegram_bot_token, telegram_chat_id
 
   Args:
     filename: The name of the file containing the credentials.
 
   Returns:
-    A tuple containing the username, password, telegram_token, telegram_chat_ID
+    A tuple containing the telegram_token and telegram_chat_ID
   """
   file_path = os.path.dirname(os.path.abspath(__file__))
   path = file_path + "/" + filename
   with open(path, "r") as f:
-    username = f.readline().strip()
-    password = f.readline().strip()
     telegram_token = f.readline().strip()
     telegram_chat_id = f.readline().strip()
-  return username, password, telegram_token, telegram_chat_id
+  return telegram_token, telegram_chat_id
 
 
 def send_telegram(token, chat_id, message):
@@ -122,60 +120,57 @@ def pretty_telegram(opportunity):
 print("Starting")
 
 # Get credentials
-username, password, token, chat_id = read_credentials("credentials.txt")
+token, chat_id = read_credentials("credentials_web.txt")
 
 # Set up Chrome options
 chrome_options = Options()
 chrome_options.add_argument("--headless")
+# Otherwise I get a forbidden!
+chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36")
 
 # Set up the browser driver (replace with the path to your driver)
 driver = webdriver.Chrome(options=chrome_options, executable_path="/usr/bin/chromedriver")
 
 # Navigate to the website
-driver.get("https://app.myinvestor.es/?data_traffic_origin=Web_Home#sego-projects:INVESTMENTS")
-
-# Find the username and password fields and fill them in
-username_field = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.XPATH, "//input[@placeholder='DNI/NIE/Pasaporte']"))
-)
-username_field.send_keys(username)
-
-password_field = driver.find_element(By.XPATH, "//input[@placeholder='Contraseña']")
-password_field.send_keys(password)
-
-# Find the login button and click it
-login_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Verificar y entrar')]")
-login_button.click()
+driver.get("https://myinvestor.es/inversion/sego-factoring/")
 
 try:
-    # Wait for an element that indicates successful login (e.g., a welcome message)
-    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))  # Adjust the XPath as needed
-    print("Login successful!")
 
-except:
-    print("Login failed.")
-    send_telegram(token, chat_id, "Error. Login failed")
-    sys.exit(-1)
-
-try:
-    # Check if the "no opportunities" message exists
-    no_opportunities_message = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'En este momento no hay oportunidades disponibles')]"))
+    wait = WebDriverWait(driver, 10)
+    card_list = wait.until(
+        EC.presence_of_element_located((By.CLASS_NAME, "card-list"))
     )
-    print("No new opportunities available.")
-    if time_for_alive_message():
-        send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades")
 
-except:
-    # If the message is not found, notify using Linux notification
-    print("New opportunities found! Sending notification...")
-    driver.save_screenshot("screenshot.png")
-    subprocess.run(["notify-send", "New", "Item"])
-    #send_telegram(token, chat_id, "Nuevas oportunidades disponibles")
-    opportunities = get_opportunity_details(driver)
-    send_telegram(token, chat_id, str(len(opportunities)) + " nuevas oportunidades disponibles")
-    for opportunity in opportunities:
-        pretty_telegram(opportunity)
+    # Find all operation items within the card-list
+    operation_items = card_list.find_elements(By.CLASS_NAME, "card-list__item")
+
+    operations_data = []
+
+    if len(operation_items) == 0:
+        print("No operations available")
+        if time_for_alive_message():
+            send_telegram(token, chat_id, "Sigo vivo co. No hay operaciones disponibles")
+
+    for operation in operation_items:
+        # Extract the title
+        title_element = operation.find_element(By.CLASS_NAME, "new-operation--title")
+        title = title_element.text.strip()
+
+        # Extract the operation type
+        type_element = operation.find_element(By.CLASS_NAME, "new-operation--type")
+        operation_type = type_element.find_element(By.CLASS_NAME, "text").text.strip()
+
+        operations_data.append({
+            "title": title,
+            "operation_type": operation_type,
+        })
+
+    send_telegram(token, chat_id, "Hay " + str(len(operations_data)) + " operaciones disponibles!")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+    subprocess.run(["notify-send", "New", "Error"])
 
 # Close the browser (optional, you might want to keep it open for further actions)
 driver.quit()
+

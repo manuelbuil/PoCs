@@ -8,7 +8,7 @@ rm /var/spool/mail/manuel
 source /home/manuel/go/src/github.com/manuelbuil/PoCs/2024/HTMLParser/myenv/bin/activate
 
 # Run your Python script
-python /home/manuel/go/src/github.com/manuelbuil/PoCs/2024/HTMLParser/miparser.py 
+python /home/manuel/go/src/github.com/manuelbuil/PoCs/2024/HTMLParser/miparserWeb.py 
 
 # Deactivate the virtual environment (optional)
 deactivate
