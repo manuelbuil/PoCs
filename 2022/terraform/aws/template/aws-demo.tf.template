@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-    region = var.regiondefault
+    region = var.regiongpu
     access_key = var.access_key
     secret_key = var.secret_key
 }
@@ -23,7 +23,7 @@ resource "aws_vpc" "vpc" {
     enable_dns_hostnames = true
 
     tags = {
-        Name = "rke2-k3s-networking"
+        Name = "rke2-k3s-terraform"
     }
 }
 
@@ -118,32 +118,54 @@ resource "aws_security_group" "allow_k8s" {
     cidr_blocks      = [aws_subnet.dualStack-subnet.cidr_block]
   }
 
-
   tags = {
     Name = "allow_k8s"
   }
 }
 
 resource "aws_instance" "myInstance" {
-  count         = %COUNT%
-  ami           = "ami-0bb457e0c5095fa9d"
+  count         = 2
+  ami           = "ami-052b6d4907729b057"
   instance_type = "t3.medium"
 
   subnet_id = aws_subnet.dualStack-subnet.id
 
-  key_name = "mbuil"
+  key_name = "mbuil-key"
 
   vpc_security_group_ids = [aws_security_group.allow_k8s.id]
 
   root_block_device {
-    volume_size = 20
+    volume_size = 30
     volume_type = "standard"
   }
 
-  user_data = filebase64(%CLOUDINIT%)
+  user_data = filebase64("../cloud-init-scripts/demoSUSECON.sh")
 
   tags = {
     Name = "terraform-mbuil-vm${count.index}"
+  }
+}
+
+resource "aws_instance" "myGPUInstance" {
+  count         = 1
+  ami           = "ami-052b6d4907729b057"
+  instance_type = "g4dn.xlarge"
+
+  subnet_id = aws_subnet.dualStack-subnet.id
+
+  key_name = "mbuil-key"
+
+  vpc_security_group_ids = [aws_security_group.allow_k8s.id]
+
+  root_block_device {
+    volume_size = 55
+    volume_type = "standard"
+  }
+
+  user_data = filebase64("../cloud-init-scripts/installGPUSLES.sh")
+
+  tags = {
+    Name = "terraform-mbuil-vm-gpu"
   }
 }
 
@@ -157,4 +179,8 @@ output "subnet_id" {
 
 output "publicIP" {
     value = aws_instance.myInstance[*].public_ip
+}
+
+output "publicIPGPU" {
+    value = aws_instance.myGPUInstance[0].public_ip
 }

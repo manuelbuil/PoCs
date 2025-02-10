@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: ollama
+    spec:
+      runtimeClassName: nvidia
+      containers:
+      - env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+        - name: PATH
+          value: /usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        image: ollama/ollama:0.3.14
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: ollama
+        resources:
+          limits:
+            nvidia.com/gpu: 1 # Request 1 GPU (adjust as needed)
+          requests:
+            nvidia.com/gpu: 1 # Request 1 GPU (usually the same as limits)
+        ports:
+        - containerPort: 11434
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-data
+      dnsPolicy: ClusterFirst
+      runtimeClassName: nvidia
+      volumes:
+      - emptyDir: {}
+        name: ollama-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  labels:
+    app: ollama
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 11434
+  selector:
+    app.kubernetes.io/component: ollama

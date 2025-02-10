@@ -14,7 +14,7 @@ mkdir -p /etc/rancher/k3s
 cp config.yaml /etc/rancher/k3s/config.yaml
 user=$(ls /home/)
 mv config.yaml /home/${user}/config.yaml
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.29.9+k3s1 sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.30.4+k3s1 sh -
 sleep 30
 echo "alias k=kubectl" >> /home/${user}/.profile
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml

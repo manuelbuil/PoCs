@@ -90,12 +90,11 @@ changeSshConfig $1 $2
 popd
 }
 
-cp azure/template/azure.tf.template azure/azure.tf
-cp aws/template/aws.tf.template aws/aws.tf
 
 case $1 in
   "rke1")
     echo "rke1 option"
+    cp azure/template/azure.tf.template azure/azure.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installDockerHelm.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
@@ -103,6 +102,7 @@ case $1 in
   ;;
   "rancher")
     echo "rancher option"
+    cp azure/template/azure.tf.template azure/azure.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
@@ -110,6 +110,7 @@ case $1 in
   ;;
   "rancher-aws")
     echo "rancher-aws option"
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     applyTerraform aws
@@ -117,6 +118,7 @@ case $1 in
   ;;
   "rancher-prime")
     echo "rancher prime option"
+    cp azure/template/azure.tf.template azure/azure.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/2/g' azure/azure.tf
     applyTerraform azure
@@ -124,6 +126,7 @@ case $1 in
   ;;
   "rancher-prime-aws")
     echo "rancher prime option"
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     applyTerraform aws
@@ -131,18 +134,21 @@ case $1 in
   ;;
   "k3s")
     echo "k3s option"
+    cp azure/template/azure.tf.template azure/azure.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' azure/azure.tf
     sed -i 's/%COUNT%/3/g' azure/azure.tf
     applyTerraform azure
   ;;
   "k3s-aws")
     echo "k3s option"
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/3/g' aws/aws.tf
     applyTerraform aws
   ;;
   "k3s-ipv6")
     echo "k3s-ipv6 option"
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3snoDS.sh"/g' aws/aws.tf
     applyTerraform aws
   ;;
@@ -175,6 +181,7 @@ case $1 in
 	    cniPlugin="$3,${cniPlugin}"
     fi
     sed -i "s/cni: .*/cni: ${cniPlugin}/g" cloud-init-scripts\/installRKE2_0.sh
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     applyTerraform aws
@@ -205,9 +212,15 @@ case $1 in
   ;;
   "rke2-ha")
     echo "rke2 in HA mode"
+    cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/5/g' aws/aws.tf
     applyTerraform aws HA
+  ;;
+  "demo-gpu")
+    echo "demo-gpu"
+    cp aws/template/aws-demo.tf.template aws/aws.tf
+    applyTerraform aws
   ;;
   *)
     echo "$0 executed without arg. Please use rke1, rancher, rancher-prime, k3s, k3s-ipv6, rke2 or windows"
