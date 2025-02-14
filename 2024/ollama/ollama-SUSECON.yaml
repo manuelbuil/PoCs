@@ -13,11 +13,15 @@ spec:
       labels:
         app.kubernetes.io/component: ollama
     spec:
+      tolerations:
+      - key: "nvidia.com/gpu" # Must match the taint key
+        operator: "Exists" # Or "Equal" if you used a value in the taint
+        effect: "NoSchedule" # Must match the taint effect
       runtimeClassName: nvidia
       containers:
       - env:
         - name: NVIDIA_VISIBLE_DEVICES
-          value: all
+          value: "0"
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: compute,utility
         - name: PATH
@@ -36,10 +40,14 @@ spec:
           timeoutSeconds: 5
         name: ollama
         resources:
-          limits:
-            nvidia.com/gpu: 1 # Request 1 GPU (adjust as needed)
           requests:
-            nvidia.com/gpu: 1 # Request 1 GPU (usually the same as limits)
+            nvidia.com/gpu: 1
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "3Gi"
+            nvidia.com/gpu: 1
         ports:
         - containerPort: 11434
           name: http

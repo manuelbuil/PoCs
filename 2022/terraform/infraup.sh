@@ -30,9 +30,6 @@ case $1 in
         ip0=$(terraform output -json | jq '.ipAddresses.value[0]')
         ip1=$(terraform output -json | jq '.ipAddresses.value[1]')
         ip2=$(terraform output -json | jq '.ipAddresses.value[2]')
-        echo $ip0
-        echo $ip1
-        echo $ip2
         sed -i '/^Host azure-ubuntu/{n;s/Hostname .*/Hostname '$ip0'/}' ~/.ssh/config
         sed -i '/^Host azure-ubuntu2/{n;s/Hostname .*/Hostname '$ip1'/}' ~/.ssh/config
         sed -i '/^Host azure-ubuntu3/{n;s/Hostname .*/Hostname '$ip2'/}' ~/.ssh/config
@@ -47,16 +44,14 @@ case $1 in
     ipv4public3=$(terraform output -json | jq '.publicIP.value[2]')
     ipv4public4=$(terraform output -json | jq '.publicIP.value[3]')
     ipv4public5=$(terraform output -json | jq '.publicIP.value[4]')
-    echo $ipv4public1
-    echo $ipv4public2
-    echo $ipv4public3
-    echo $ipv4public4
-    echo $ipv4public5
     sed -i '/^Host aws-ubuntu/{n;s/Hostname .*/Hostname '$ipv4public1'/}' ~/.ssh/config
     sed -i '/^Host aws-ubuntu2/{n;s/Hostname .*/Hostname '$ipv4public2'/}' ~/.ssh/config
     sed -i '/^Host aws-ubuntu3/{n;s/Hostname .*/Hostname '$ipv4public3'/}' ~/.ssh/config
     sed -i '/^Host aws-ubuntu4/{n;s/Hostname .*/Hostname '$ipv4public4'/}' ~/.ssh/config
     sed -i '/^Host aws-ubuntu5/{n;s/Hostname .*/Hostname '$ipv4public5'/}' ~/.ssh/config
+    sed -i '/^Host aws-suse/{n;s/Hostname .*/Hostname '$ipv4public1'/}' ~/.ssh/config
+    sed -i '/^Host aws-suse2/{n;s/Hostname .*/Hostname '$ipv4public2'/}' ~/.ssh/config
+    sed -i '/^Host aws-suse3/{n;s/Hostname .*/Hostname '$ipv4public3'/}' ~/.ssh/config
   ;;
   *)
     echo "Something went wrong in the ssh"
