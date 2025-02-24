@@ -14,6 +14,7 @@ spec:
         app.kubernetes.io/component: ollama
     spec:
       tolerations:
+      # k tain nodes $NODE nvidia.com/gpu=:NoSchedule
       - key: "nvidia.com/gpu" # Must match the taint key
         operator: "Exists" # Or "Equal" if you used a value in the taint
         effect: "NoSchedule" # Must match the taint effect
