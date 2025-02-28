@@ -1,6 +1,8 @@
-import datetime, subprocess, os, sys, telegram
+import asyncio, datetime, subprocess, os, sys, time
+from telegram import Bot
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -44,11 +46,11 @@ def read_credentials(filename):
   return username, password, telegram_token, telegram_chat_id
 
 
-def send_telegram(token, chat_id, message):
-    """ Sends a message to a Telegram chat."""
-
-    bot = telegram.Bot(token=token)
-    bot.send_message(chat_id=chat_id, text=message)
+async def send_telegram(token, chat_id, message):
+    """Sends a message to a Telegram chat synchronously."""
+    bot = Bot(token=token)
+    async with bot:
+        await bot.send_message(chat_id=chat_id, text=message)
 
 def get_opportunity_details(driver):
     """
@@ -92,15 +94,18 @@ def get_opportunity_details(driver):
             opportunity["tipo_interes_neto"] = None
 
         try:
-            conseguidos_element = card.find_element(By.XPATH, ".//div[contains(., 'Conseguidos')]/following-sibling::div")
-            print(conseguidos_element.text)
-            conseguidos_text = conseguidos_element.text  # Example: "602,44 € (14,00 %)"
-            percentage = float(conseguidos_text.split("(")[-1].split("%")[0].replace(",", "."))  # Extract percentage and convert to float
-            print(percentage)
-            opportunity["conseguidos"] = conseguidos_text
+            conseguidos_div = card.find_element(By.XPATH, ".//div[contains(., 'Conseguidos') and contains(., 'Total')]")
+            # Locate the following sibling <div> which contains the values
+            values_div = conseguidos_div.find_element(By.XPATH, "./following-sibling::div")
+
+            # Extract the text content from the first child <div> within values_div
+            percentage_text = values_div.find_element(By.XPATH, "./div[1]").text
+
+            # Extract the percentage value (e.g., '100,00 %')
+            percentage = percentage_text.split("(")[-1].split(")")[0]
+            print(f"percentage: {percentage}\n")
             opportunity["conseguidos_percentage"] = percentage
         except:
-            opportunity["conseguidos"] = None
             opportunity["conseguidos_percentage"] = None
 
         opportunities.append(opportunity)
@@ -110,13 +115,13 @@ def get_opportunity_details(driver):
 
 def pretty_telegram(opportunity):
     if not opportunity["operacion_asegurada"]:
-        send_telegram(token, chat_id, "Operación no asegurada")
+        asyncio.run(send_telegram(token, chat_id, "Operación no asegurada"))
         return
     message = "Operación asegurada\n \
     Plazo: " + opportunity["plazo"] + "\n \
     Tipo interés neto: " + opportunity["tipo_interes_neto"] + "\n \
-    Porcentaje conseguidos: " + str(opportunity["conseguidos_percentage"]) + "\n"
-    send_telegram(token, chat_id, message)
+    Porcentaje conseguidos: " + opportunity["conseguidos_percentage"] + "\n"
+    asyncio.run(send_telegram(token, chat_id, message))
 
 
 print("Starting")
@@ -124,58 +129,92 @@ print("Starting")
 # Get credentials
 username, password, token, chat_id = read_credentials("credentials.txt")
 
+if not token or not chat_id or not username or not password:
+    print("Missing environment variables")
+
 # Set up Chrome options
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 
 # Set up the browser driver (replace with the path to your driver)
-driver = webdriver.Chrome(options=chrome_options, executable_path="/usr/bin/chromedriver")
+service = Service(executable_path="/usr/bin/chromedriver")
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Navigate to the website
-driver.get("https://app.myinvestor.es/?data_traffic_origin=Web_Home#sego-projects:INVESTMENTS")
+driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
 
 # Find the username and password fields and fill them in
-username_field = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.XPATH, "//input[@placeholder='DNI/NIE/Pasaporte']"))
+username_field = WebDriverWait(driver, 20).until(
+    EC.presence_of_element_located((By.XPATH, "//input[@placeholder='DNI / NIE / Pasaporte']"))
 )
 username_field.send_keys(username)
 
 password_field = driver.find_element(By.XPATH, "//input[@placeholder='Contraseña']")
 password_field.send_keys(password)
 
-# Find the login button and click it
-login_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Verificar y entrar')]")
-login_button.click()
+try:
+    login_button = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "button[type='submit']._6p0dh75"))
+    )
+    print("Login button found using CSS Selector")
+
+    # Scroll to the button
+    driver.execute_script("arguments[0].scrollIntoView(true);", login_button)
+
+    # Wait for the login button to be enabled
+    WebDriverWait(driver, 30).until(
+        lambda driver: login_button.is_enabled()
+    )
+
+    login_button.click()
+    print("Login button clicked")
+
+except Exception as e:
+    print(f"Error finding/clicking login button: {e}")
+    print(driver.page_source) # Print the page source for debugging.
+    driver.save_screenshot("error_screenshot.png") #save screenshot.
 
 try:
+    # Wait for login to complete (adjust time as needed)
+    time.sleep(3)  # Give the site time to log you in
+
+    # Open a new tab
+    driver.execute_script("window.open('');")
+
+    # Switch to the new tab
+    driver.switch_to.window(driver.window_handles[1])
+    driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
+
     # Wait for an element that indicates successful login (e.g., a welcome message)
-    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))  # Adjust the XPath as needed
+    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))
     print("Login successful!")
 
 except:
     print("Login failed.")
-    send_telegram(token, chat_id, "Error. Login failed")
+    asyncio.run(send_telegram(token, chat_id, "Error. Login failed"))
     sys.exit(-1)
 
 try:
     # Check if the "no opportunities" message exists
     no_opportunities_message = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'En este momento no hay oportunidades disponibles')]"))
+        EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'No hay nuevas oportunidades')]"))
     )
     print("No new opportunities available.")
     if time_for_alive_message():
-        send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades")
+        asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
+    #asyncio.run(send_telegram(token, chat_id, "TESTING async!"))
 
 except:
     # If the message is not found, notify using Linux notification
     print("New opportunities found! Sending notification...")
+    asyncio.run(send_telegram(token, chat_id, "New opportunities!"))
     driver.save_screenshot("screenshot.png")
-    subprocess.run(["notify-send", "New", "Item"])
-    #send_telegram(token, chat_id, "Nuevas oportunidades disponibles")
     opportunities = get_opportunity_details(driver)
-    send_telegram(token, chat_id, str(len(opportunities)) + " nuevas oportunidades disponibles")
     for opportunity in opportunities:
-        pretty_telegram(opportunity)
+        print(f"opportunity: {opportunity}")
+        if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
+            subprocess.run(["notify-send", "New", "Item"])
+            pretty_telegram(opportunity)
 
 # Close the browser (optional, you might want to keep it open for further actions)
 driver.quit()
