@@ -168,55 +168,143 @@ def pretty_telegram(opportunity):
     asyncio.run(send_telegram(token, chat_id, message))
 
 
+def check_for_no_opportunities(driver):
+    """
+    Checks if the "no opportunities" message is displayed.
+
+    Args:
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        bool: True if the message is found (no opportunities), False otherwise.
+    """
+    try:
+        # Use a short timeout here for a quicker check.  No need for a full 30 seconds.
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'No hay nuevas oportunidades')]"))
+        )
+        return True  # Indicate no opportunities
+    except TimeoutException:
+        return False  # Indicate that the message was not found, meaning there *might* be opportunities
+
+
+def check_for_opportunities(driver):
+    """
+    Checks for new opportunities and handles notifications.
+
+    Args:
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        bool: True if new opportunities were found, False otherwise.
+    """
+    if check_for_no_opportunities(driver):
+        return False
+
+
+    # If the message is not found, notify using Linux notification
+    print("New opportunities found! Sending notification...")
+    driver.save_screenshot("screenshot.png")
+
+    # Using method 1
+    opportunity = get_opportunity_details(driver)
+    print(f"opportunity. Method1 : {opportunity}")
+    if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
+        subprocess.run(["notify-send", "New", "Item"])
+        asyncio.run(send_telegram(token, chat_id, "New opportunities! Method1"))
+        pretty_telegram(opportunity)
+
+    # Using method 2
+    opportunities = testing_get_opportunity_details(driver)
+    for opp in opportunities:
+        print(f"opportunity: Method2: {opp}")
+        if float(opp["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
+            subprocess.run(["notify-send", "New", "Item"])
+            asyncio.run(send_telegram(token, chat_id, "New opportunities! Method2"))
+            pretty_telegram(opp)
+
+
+    return True
+
+
+def initialize():
+    """
+    Initializes the driver.
+
+    Returns:
+      driver
+    """
+    # Set up Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+
+    # Set up the browser driver (replace with the path to your driver)
+    service = Service(executable_path="/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    # Navigate to the website
+    driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
+
+    return driver
+
+def login(driver):
+    """
+    Logs into the website
+
+    Args:
+      driver
+
+    Returns:
+        tuple: (telegram_token, telegram_chat_id) if login is successful and they are available.
+    """
+
+    # Get credentials
+    username, password, token, chat_id = read_credentials("credentials.txt")
+
+    if not token or not chat_id or not username or not password:
+        raise Exception("Missing login variable")
+
+    try:
+        # Find the username and password fields and fill them in
+        username_field = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//input[@placeholder='DNI / NIE / Pasaporte']"))
+        )
+        username_field.send_keys(username)
+
+        password_field = driver.find_element(By.XPATH, "//input[@placeholder='Contraseña']")
+        password_field.send_keys(password)
+
+        login_button = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "button[type='submit']._6p0dh75"))
+        )
+        print("Login button found using CSS Selector")
+
+        # Scroll to the button
+        driver.execute_script("arguments[0].scrollIntoView(true);", login_button)
+
+        # Wait for the login button to be enabled
+        WebDriverWait(driver, 30).until(
+            lambda driver: login_button.is_enabled()
+        )
+
+        login_button.click()
+        print("Login button clicked")
+   
+    except Exception as e:
+        print(f"Error with login: {e}")
+        raise
+
+    return token, chat_id
+      
+
 print("Starting")
 
-# Get credentials
-username, password, token, chat_id = read_credentials("credentials.txt")
-
-if not token or not chat_id or not username or not password:
-    print("Missing environment variables")
-
-# Set up Chrome options
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-
-# Set up the browser driver (replace with the path to your driver)
-service = Service(executable_path="/usr/bin/chromedriver")
-driver = webdriver.Chrome(service=service, options=chrome_options)
-
-# Navigate to the website
-driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
-
-# Find the username and password fields and fill them in
-username_field = WebDriverWait(driver, 20).until(
-    EC.presence_of_element_located((By.XPATH, "//input[@placeholder='DNI / NIE / Pasaporte']"))
-)
-username_field.send_keys(username)
-
-password_field = driver.find_element(By.XPATH, "//input[@placeholder='Contraseña']")
-password_field.send_keys(password)
-
+driver = initialize()
 try:
-    login_button = WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "button[type='submit']._6p0dh75"))
-    )
-    print("Login button found using CSS Selector")
-
-    # Scroll to the button
-    driver.execute_script("arguments[0].scrollIntoView(true);", login_button)
-
-    # Wait for the login button to be enabled
-    WebDriverWait(driver, 30).until(
-        lambda driver: login_button.is_enabled()
-    )
-
-    login_button.click()
-    print("Login button clicked")
-
+    token, chat_id = login(driver)
 except Exception as e:
-    print(f"Error finding/clicking login button: {e}")
-    print(driver.page_source) # Print the page source for debugging.
-    driver.save_screenshot("error_screenshot.png") #save screenshot.
+    print(f"Error login: {e}")
+    sys.exit(-1)
 
 try:
     # Wait for login to complete (adjust time as needed)
@@ -239,36 +327,12 @@ except:
     sys.exit(-1)
 
 try:
-    # Check if the "no opportunities" message exists
-    no_opportunities_message = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'No hay nuevas oportunidades')]"))
-    )
-    print("No new opportunities available.")
-    if time_for_alive_message():
-        asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
-
-except:
-    # If the message is not found, notify using Linux notification
-    print("New opportunities found! Sending notification...")
-    driver.save_screenshot("screenshot.png")
-    #
-    # Using method 1
-    opportunity = get_opportunity_details(driver)
-    print(f"opportunity. Method1 : {opportunity}")
-    if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
-        subprocess.run(["notify-send", "New", "Item"])
-        asyncio.run(send_telegram(token, chat_id, "New opportunities! Method1"))
-        pretty_telegram(opportunity)
-
-    # Using method 2
-    opportunities = testing_get_opportunity_details(driver)
-    for opp in opportunities:
-        print(f"opportunity: Method2: {opp}")
-        if float(opp["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
-            subprocess.run(["notify-send", "New", "Item"])
-            asyncio.run(send_telegram(token, chat_id, "New opportunities! Method2"))
-            pretty_telegram(opp)
-
-
-# Close the browser (optional, you might want to keep it open for further actions)
-driver.quit()
+    if check_for_opportunities(driver):
+        print("New opportunity notifications sent.")
+    else:
+        print("No new opportunities available.")
+        if time_for_alive_message():
+            asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
+finally:
+    # Close the browser (optional, you might want to keep it open for further actions)
+    driver.quit()
