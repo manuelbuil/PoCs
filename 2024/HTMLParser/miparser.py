@@ -52,6 +52,64 @@ async def send_telegram(token, chat_id, message):
     async with bot:
         await bot.send_message(chat_id=chat_id, text=message)
 
+def  scrape_card(card_element):
+    """Extracts information from a single card element."""
+    opportunity = {}
+    try:
+        opportunity["tipo_interes"] = card_element.find_element(By.XPATH, ".//div[1]/div[3]/div[3]/div[1]/h6").text
+    except:
+        opportunity["tipo_interes"] = None
+
+    # 2 - Con seguro (verificar si el texto existe)
+    try:
+        seguro_element = card_element.find_element(By.XPATH, ".//*[text()='Con seguro']")
+        opportunity["operacion_asegurada"] = True
+    except:
+        opportunity["operacion_asegurada"] = False
+
+    # 3 - Conseguido percentage
+    try:
+        conseguido_div = card_element.find_element(By.XPATH, ".//div[contains(., 'Conseguido')]")
+        conseguido_value = conseguido_div.find_element(By.CSS_SELECTOR, "h6").text
+        percentage = conseguido_value.split("- ")[-1]
+        opportunity["conseguidos_percentage"] = percentage
+    except:
+        opportunity["conseguidos_percentage"] = None
+
+    # Add other fields you want to scrape from the card here
+    return opportunity
+
+def testing_get_opportunity_details(driver):
+
+    print("Inside the testing_get_opportunity_details")
+
+    # Find all the card elements using the derived XPath
+    card_elements = driver.find_elements(By.XPATH, "//div[@class='slcnsf4 slcnsf5']/div")
+
+    print("Did we find any card?")
+    print(f"card_elements: {card_elements}")
+
+    all_opportunities = []
+    if card_elements:
+        print(f"Found {len(card_elements)} cards.")
+        for card in card_elements:
+            opportunity_data = scrape_card(card)
+            all_opportunities.append(opportunity_data)
+            print(f"Processed card: {opportunity_data}")
+    else:
+        print("No cards found on the page.")
+
+    print(f"\nAll opportunities: {all_opportunities}")
+
+    # Filter out the opportunities where 'conseguidos_percentage' is None
+    filtered_opportunities = [opp for opp in all_opportunities if opp.get("conseguidos_percentage") is not None]
+
+    print(f"\nAll processed opportunities: {all_opportunities}")
+    print(f"\nFiltered opportunities (with data): {filtered_opportunities}")
+
+    return filtered_opportunities
+ 
+
 def get_opportunity_details(driver):
     """
     Fetches details for each investment opportunity on the page.
@@ -65,52 +123,39 @@ def get_opportunity_details(driver):
     """
 
     opportunities = []
-    cards = WebDriverWait(driver, 15).until(
-        EC.presence_of_all_elements_located((By.XPATH, "//div[@class='card card-myinvestor-sombra margin-top-15']"))
-    )
-    
-    for card in cards:
-        opportunity = {}
+    print("Inside the get_opportunity_details")
 
-        # 1 - Check for "Operación asegurada"
-        try:
-            card.find_element(By.XPATH, ".//span[contains(text(), 'Operación asegurada')]")
-            opportunity["operacion_asegurada"] = True
-        except:
-            opportunity["operacion_asegurada"] = False
+    print("There are cards")
+    opportunity = {}
 
-        # 2 - Fetch "Plazo"
-        try:
-            plazo_element = card.find_element(By.XPATH, ".//div[contains(., 'Plazo')]/following-sibling::div")
-            opportunity["plazo"] = plazo_element.text  # Example: "71 días"
-        except:
-            opportunity["plazo"] = None
+    # 1 - Check for "Operación asegurada"
+    try:
+        driver.find_element(By.XPATH, ".//span[contains(text(), 'Con seguro')]")
+        opportunity["operacion_asegurada"] = True
+    except:
+        opportunity["operacion_asegurada"] = False
 
-        # 3 - Fetch "Tipo interés neto"
-        try:
-            interes_element = card.find_element(By.XPATH, ".//div[contains(., 'Tipo interés neto')]/following-sibling::div")
-            opportunity["tipo_interes_neto"] = interes_element.text.split()[0]  # Extract "5,60 %" and then split to get "5,60"
-        except:
-            opportunity["tipo_interes_neto"] = None
+    # 2 - Fetch "Tipo interés neto"
+    try:
+        opportunity["tipo_interes"] = driver.find_element(By.XPATH, "//span[text()='Interés bruto']/following-sibling::h6").text
+    except:
+        opportunity["tipo_interes"] = None
 
-        try:
-            conseguidos_div = card.find_element(By.XPATH, ".//div[contains(., 'Conseguidos') and contains(., 'Total')]")
-            # Locate the following sibling <div> which contains the values
-            values_div = conseguidos_div.find_element(By.XPATH, "./following-sibling::div")
+    # 3 - Fetch "Conseguido"
+    try:
+        conseguido_div = driver.find_element(By.XPATH, "//div[contains(., 'Conseguido')]")
 
-            # Extract the text content from the first child <div> within values_div
-            percentage_text = values_div.find_element(By.XPATH, "./div[1]").text
+        # Find the h6 element within the parent div.
+        conseguido_value = conseguido_div.find_element(By.CSS_SELECTOR, "h6").text
 
-            # Extract the percentage value (e.g., '100,00 %')
-            percentage = percentage_text.split("(")[-1].split(")")[0]
-            print(f"percentage: {percentage}\n")
-            opportunity["conseguidos_percentage"] = percentage
-        except:
-            opportunity["conseguidos_percentage"] = None
+        # Extract the "100%" using string manipulation.
+        percentage = conseguido_value.split("- ")[-1] #split the string at "- " and take the last element of the resulting list.
+        opportunity["conseguidos_percentage"] = percentage
+    except:
+        opportunity["conseguidos_percentage"] = None
 
-        opportunities.append(opportunity)
+    return opportunity
 
-    return opportunities
 
 
 def pretty_telegram(opportunity):
@@ -118,8 +163,7 @@ def pretty_telegram(opportunity):
         asyncio.run(send_telegram(token, chat_id, "Operación no asegurada"))
         return
     message = "Operación asegurada\n \
-    Plazo: " + opportunity["plazo"] + "\n \
-    Tipo interés neto: " + opportunity["tipo_interes_neto"] + "\n \
+    Tipo interés: " + opportunity["tipo_interes"] + "\n \
     Porcentaje conseguidos: " + opportunity["conseguidos_percentage"] + "\n"
     asyncio.run(send_telegram(token, chat_id, message))
 
@@ -196,25 +240,35 @@ except:
 
 try:
     # Check if the "no opportunities" message exists
-    no_opportunities_message = WebDriverWait(driver, 15).until(
+    no_opportunities_message = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'No hay nuevas oportunidades')]"))
     )
     print("No new opportunities available.")
     if time_for_alive_message():
         asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
-    #asyncio.run(send_telegram(token, chat_id, "TESTING async!"))
 
 except:
     # If the message is not found, notify using Linux notification
     print("New opportunities found! Sending notification...")
-    asyncio.run(send_telegram(token, chat_id, "New opportunities!"))
     driver.save_screenshot("screenshot.png")
-    opportunities = get_opportunity_details(driver)
-    for opportunity in opportunities:
-        print(f"opportunity: {opportunity}")
-        if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
+    #
+    # Using method 1
+    opportunity = get_opportunity_details(driver)
+    print(f"opportunity. Method1 : {opportunity}")
+    if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
+        subprocess.run(["notify-send", "New", "Item"])
+        asyncio.run(send_telegram(token, chat_id, "New opportunities! Method1"))
+        pretty_telegram(opportunity)
+
+    # Using method 2
+    opportunities = testing_get_opportunity_details(driver)
+    for opp in opportunities:
+        print(f"opportunity: Method2: {opp}")
+        if float(opp["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
             subprocess.run(["notify-send", "New", "Item"])
-            pretty_telegram(opportunity)
+            asyncio.run(send_telegram(token, chat_id, "New opportunities! Method2"))
+            pretty_telegram(opp)
+
 
 # Close the browser (optional, you might want to keep it open for further actions)
 driver.quit()
