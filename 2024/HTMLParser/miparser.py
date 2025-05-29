@@ -184,7 +184,7 @@ def check_for_no_opportunities(driver):
             EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'No hay nuevas oportunidades')]"))
         )
         return True  # Indicate no opportunities
-    except TimeoutException:
+    except:
         return False  # Indicate that the message was not found, meaning there *might* be opportunities
 
 
