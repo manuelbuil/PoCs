@@ -79,9 +79,9 @@ def  scrape_card(card_element):
     # Add other fields you want to scrape from the card here
     return opportunity
 
-def testing_get_opportunity_details(driver):
+def get_opportunity_details(driver):
 
-    print("Inside the testing_get_opportunity_details")
+    print("Inside the get_opportunity_details")
 
     # Find all the card elements using the derived XPath
     card_elements = driver.find_elements(By.XPATH, "//div[@class='slcnsf4 slcnsf5']/div")
@@ -109,54 +109,6 @@ def testing_get_opportunity_details(driver):
 
     return filtered_opportunities
  
-
-def get_opportunity_details(driver):
-    """
-    Fetches details for each investment opportunity on the page.
-
-    Args:
-      driver: The Selenium webdriver instance.
-
-    Returns:
-      A list of dictionaries, where each dictionary contains details 
-      for a single opportunity.
-    """
-
-    opportunities = []
-    print("Inside the get_opportunity_details")
-
-    print("There are cards")
-    opportunity = {}
-
-    # 1 - Check for "Operación asegurada"
-    try:
-        driver.find_element(By.XPATH, ".//span[contains(text(), 'Con seguro')]")
-        opportunity["operacion_asegurada"] = True
-    except:
-        opportunity["operacion_asegurada"] = False
-
-    # 2 - Fetch "Tipo interés neto"
-    try:
-        opportunity["tipo_interes"] = driver.find_element(By.XPATH, "//span[text()='Interés bruto']/following-sibling::h6").text
-    except:
-        opportunity["tipo_interes"] = None
-
-    # 3 - Fetch "Conseguido"
-    try:
-        conseguido_div = driver.find_element(By.XPATH, "//div[contains(., 'Conseguido')]")
-
-        # Find the h6 element within the parent div.
-        conseguido_value = conseguido_div.find_element(By.CSS_SELECTOR, "h6").text
-
-        # Extract the "100%" using string manipulation.
-        percentage = conseguido_value.split("- ")[-1] #split the string at "- " and take the last element of the resulting list.
-        opportunity["conseguidos_percentage"] = percentage
-    except:
-        opportunity["conseguidos_percentage"] = None
-
-    return opportunity
-
-
 
 def pretty_telegram(opportunity):
     if not opportunity["operacion_asegurada"]:
@@ -206,21 +158,12 @@ def check_for_opportunities(driver):
     print("New opportunities found! Sending notification...")
     driver.save_screenshot("screenshot.png")
 
-    # Using method 1
-    opportunity = get_opportunity_details(driver)
-    print(f"opportunity. Method1 : {opportunity}")
-    if float(opportunity["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
-        subprocess.run(["notify-send", "New", "Item"])
-        asyncio.run(send_telegram(token, chat_id, "New opportunities! Method1"))
-        pretty_telegram(opportunity)
-
-    # Using method 2
-    opportunities = testing_get_opportunity_details(driver)
+    opportunities = get_opportunity_details(driver)
     for opp in opportunities:
-        print(f"opportunity: Method2: {opp}")
+        print(f"opportunity: {opp}")
         if float(opp["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
             subprocess.run(["notify-send", "New", "Item"])
-            asyncio.run(send_telegram(token, chat_id, "New opportunities! Method2"))
+            asyncio.run(send_telegram(token, chat_id, "New opportunities!"))
             pretty_telegram(opp)
 
 
