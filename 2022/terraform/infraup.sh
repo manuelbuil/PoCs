@@ -71,6 +71,9 @@ case "$cloud_provider" in
       "sles")
         os_prefix="suse"
       ;;
+      "rhel")
+        os_prefix="rhel"
+      ;;
       *)
         echo "Error: Unknown OS type for AWS in changeSshConfig: $vm_config_type"
         exit 1
@@ -128,6 +131,7 @@ else
     echo "Error: Unhandled cloud provider in applyTerraform: $1"
     exit 1
 fi
+ipv4public1=$(terraform output -json | jq -r '.ipAddresses.value[0]')
 popd
 }
 
@@ -177,6 +181,9 @@ case "$OS_TYPE" in
     ;;
   "sles")
     AMI_ID_AWS="ami-0c517408a745b7297" # SLES AMI
+    ;;
+  "rhel")
+    AMI_ID_AWS="ami-0c00c3951305c3894" # RHEL9 AMI
     ;;
   *)
     echo "Error: Invalid OS type: $OS_TYPE. Supported types are 'ubuntu' and 'sles'."
@@ -294,7 +301,7 @@ case "$K8S_DISTRO" in
   "rke2-ha")
     echo "rke2 in HA mode"
     cp aws/template/aws.tf.template aws/aws.tf
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/5/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
     applyTerraform aws HA
@@ -302,6 +309,10 @@ case "$K8S_DISTRO" in
   "demo-gpu")
     echo "demo-gpu"
     cp aws/template/aws-demo.tf.template aws/aws.tf
+    AMI_ID_AWS="ami-07a28cc68132fccf1" # SLES15 SP7 in AWS Ireland
+    OS_TYPE="sles"
+    sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
     applyTerraform aws
   ;;
   *)

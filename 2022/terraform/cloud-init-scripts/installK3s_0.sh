@@ -25,9 +25,9 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL="latest" sh -
 echo "alias k=kubectl" >> /home/${user}/.profile
 
 # Add the typical manifests
-wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2023/windows-deployment.yml
-wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/multitool.yaml
-wget https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/httpbin.yaml
+curl -O https://raw.githubusercontent.com/manuelbuil/PoCs/main/2023/windows-deployment.yml
+curl -O https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/multitool.yaml
+curl -O https://raw.githubusercontent.com/manuelbuil/PoCs/main/2021/httpbin.yaml
 mv windows-deployment.yml multitool.yaml httpbin.yaml /home/${user}/
 
 # Change the owner of all files in /home/azureuser/

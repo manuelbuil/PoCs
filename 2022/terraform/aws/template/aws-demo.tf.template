@@ -125,7 +125,7 @@ resource "aws_security_group" "allow_k8s" {
 
 resource "aws_instance" "myInstance" {
   count         = 2
-  ami           = "ami-052b6d4907729b057"
+  ami           = "%AMI%"
   instance_type = "t3.large"
 
   subnet_id = aws_subnet.dualStack-subnet.id
@@ -139,7 +139,7 @@ resource "aws_instance" "myInstance" {
     volume_type = "standard"
   }
 
-  user_data = filebase64("../cloud-init-scripts/demoSUSECON.sh")
+  user_data = filebase64(%CLOUDINIT%)
 
   tags = {
     Name = "terraform-mbuil-vm${count.index}"
@@ -148,7 +148,7 @@ resource "aws_instance" "myInstance" {
 
 resource "aws_instance" "myGPUInstance" {
   count         = 1
-  ami           = "ami-052b6d4907729b057"
+  ami           = "%AMI%"
   instance_type = "g4dn.xlarge"
 
   subnet_id = aws_subnet.dualStack-subnet.id

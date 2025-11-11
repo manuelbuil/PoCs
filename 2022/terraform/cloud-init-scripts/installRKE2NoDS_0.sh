@@ -9,7 +9,7 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 cat <<EOF > config.yaml
 write-kubeconfig-mode: 644
 token: "secret"
-cni: calico
+cni: flannel
 # curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL="latest" sh -
 EOF
 

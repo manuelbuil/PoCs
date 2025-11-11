@@ -35,6 +35,8 @@ getServerIP(){
 
     for ip in $(listCloserIPs $1); do
         response=$(nc -w 3 ${ip} 43210)
+        echo "Checking ${ip}..."
+        echo ${response}
         if [[ "$response" == "$expected_message" ]]; then
                 echo ${ip}
                 break
