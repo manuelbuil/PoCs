@@ -13,13 +13,13 @@ def time_for_alive_message():
   """
   now = datetime.datetime.now()
   start_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
-  end_time = now.replace(hour=16, minute=10, second=0, microsecond=0)
+  end_time = now.replace(hour=16, minute=5, second=0, microsecond=0)
 
   if start_time <= now <= end_time:
       return True
 
   start_time2 = now.replace(hour=11, minute=30, second=0, microsecond=0)
-  end_time2 = now.replace(hour=11, minute=40, second=0, microsecond=0)
+  end_time2 = now.replace(hour=11, minute=35, second=0, microsecond=0)
   if start_time2 <= now <= end_time2:
       return True
 
@@ -251,7 +251,7 @@ except Exception as e:
 
 try:
     # Wait for login to complete (adjust time as needed)
-    time.sleep(3)  # Give the site time to log you in
+    time.sleep(14)  # Give the site time to log you in
 
     # Open a new tab
     driver.execute_script("window.open('');")
@@ -278,4 +278,5 @@ try:
             asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
 finally:
     # Close the browser (optional, you might want to keep it open for further actions)
+    # time.sleep(100)
     driver.quit()
