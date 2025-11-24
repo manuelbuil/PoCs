@@ -1,0 +1,22 @@
+# another-nonworking-annotation
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: another-nonworking-annotation
+  namespace: test-migration
+  annotations:
+    # Defines a new path for the service to never see "/app"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: another.nonworking.annotation.example.com
+    http:
+      paths:
+      - path: /app(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: whoami-svc
+            port:
+              number: 80
