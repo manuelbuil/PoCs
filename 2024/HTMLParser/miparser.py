@@ -279,4 +279,4 @@ try:
 finally:
     # Close the browser (optional, you might want to keep it open for further actions)
     # time.sleep(100)
-    driver.quit()
+     driver.quit()

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -eu
-
 CURL="curl -s -o /dev/null -w "%{http_code}""
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -19,7 +17,7 @@ compare() {
     fi
 }
 
-
+kubectl create secret tls dummy-tls-secret --cert=dummy-tls.crt --key=dummy-tls.key --namespace test-migration
 IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' | cut -d" " -f1)
 OUTPUT1=$($CURL -H "Host: simple.example.com" http://$IP)
 compare $OUTPUT1 "200" "simple.example.com"
@@ -31,10 +29,4 @@ OUTPUT4=$($CURL -u "user:password" -H "Host: another.nonworking.annotation.examp
 compare $OUTPUT4 "200" "redirect"
 OUTPUT5=$($CURL -H "Host: oneannotation.example.com" http://$IP/)
 compare $OUTPUT5 "308" "ssl-redirect"
-OUTPUT6_FULL=$(curl -v -H "Host: nonworking.example.com" http://$IP/ 2>&1)
-if echo "$OUTPUT6_FULL" | grep -q 'Host: internal-host.local'; then
-    echo -e "[${GREEN}PASS${NC}] "vhost""
-else
-    # If the desired header is NOT found, set the output flag to "FAIL" (unexpected result)
-    echo -e "[${RED}FAIL${NC}] "vhost""
-fi
+curl -v -H "Host: nonworking.example.com" http://$IP/

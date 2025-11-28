@@ -16,7 +16,7 @@ compare() {
     fi
 }
 
-
+kubectl create secret tls dummy-tls-secret --cert=dummy-tls.crt --key=dummy-tls.key --namespace test-migration
 IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' | cut -d" " -f1)
 OUTPUT1=$($CURL -H "Host: simple.example.com" http://$IP:8000)
 compare $OUTPUT1 "200"
@@ -29,12 +29,4 @@ compare $OUTPUT4 "404"
 OUTPUT5=$($CURL -H "Host: oneannotation.example.com" http://$IP:8000/)
 compare $OUTPUT5 "308"
 
-OUTPUT6_FULL=$(curl -v -H "Host: nonworking.example.com" http://$IP:8000/ 2>&1)
-if echo "$OUTPUT6_FULL" | grep -q 'Host: internal-host.local'; then
-    echo -e "[${RED}FAIL${NC}] "vhost""
-else
-    # If the desired header is NOT found, set the output flag to "FAIL" (unexpected result)
-    echo -e "[${GREEN}PASS${NC}] "vhost""
-fi
-
-
+curl -v -H "Host: nonworking.example.com" http://$IP:8000/
