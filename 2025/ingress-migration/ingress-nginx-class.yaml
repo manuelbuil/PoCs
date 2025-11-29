@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  annotations:
+    meta.helm.sh/release-name: rke2-ingress-nginx
+    meta.helm.sh/release-namespace: kube-system
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: rke2-ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: rke2-ingress-nginx
+    app.kubernetes.io/part-of: rke2-ingress-nginx
+    app.kubernetes.io/version: 1.13.4
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
