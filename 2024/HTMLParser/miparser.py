@@ -7,16 +7,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-DEBUG_MODE = os.getenv('DEBUG','0').lower() in ('1','true')
-
-logging.basicConfig(
-    level=logging.DEBUG if DEBUG_MODE else logging.INFO
-)
-logger = logging.getLogger("SEGO script")
-
-logger.info(f"Starting script. DEBUG_MODE is {'ON' if DEBUG_MODE else 'OFF'}")
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
 def time_for_alive_message():
   """
   Checks the current time and prints a message if it's between 17:00 and 17:10.
@@ -38,13 +28,13 @@ def time_for_alive_message():
 # Read credentials from a file
 def read_credentials(filename):
   """Reads confidential information from a file in the same directory as the parser.py.
-  That file must have four lines with username, password, telegram_bot_token, telegram_chat_id
+  That file must have four lines with username, password, telegram_bot_token, telegram_chat_id, url
 
   Args:
     filename: The name of the file containing the credentials.
 
   Returns:
-    A tuple containing the username, password, telegram_token, telegram_chat_ID
+    A tuple containing the username, password, telegram_token, telegram_chat_ID, url
   """
   file_path = os.path.dirname(os.path.abspath(__file__))
   path = file_path + "/" + filename
@@ -53,7 +43,8 @@ def read_credentials(filename):
     password = f.readline().strip()
     telegram_token = f.readline().strip()
     telegram_chat_id = f.readline().strip()
-  return username, password, telegram_token, telegram_chat_id
+    url = f.readline().strip()
+  return username, password, telegram_token, telegram_chat_id, url
 
 
 async def send_telegram(token, chat_id, message):
@@ -163,7 +154,8 @@ def check_for_opportunities(driver):
 
     # If the message is not found, notify using Linux notification
     logger.info("New opportunities found! Sending notification...")
-    driver.save_screenshot("screenshot.png")
+    if DEBUG_MODE:
+        driver.save_screenshot("screenshot.png")
 
     opportunities = get_opportunity_details(driver)
     for opp in opportunities:
@@ -172,7 +164,6 @@ def check_for_opportunities(driver):
             subprocess.run(["notify-send", "New", "Item"])
             asyncio.run(send_telegram(token, chat_id, "New opportunities!"))
             pretty_telegram(opp)
-
 
     return True
 
@@ -193,9 +184,6 @@ def initialize():
     service = Service(executable_path="/usr/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    # Navigate to the website
-    driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
-
     return driver
 
 def login(driver):
@@ -210,10 +198,16 @@ def login(driver):
     """
 
     # Get credentials
-    username, password, token, chat_id = read_credentials("credentials.txt")
+    username, password, token, chat_id, url = read_credentials("credentials.txt")
 
     if not token or not chat_id or not username or not password:
         raise Exception("Missing login variable")
+
+    if not url:
+        raise Exception("URL missing")
+
+        # Navigate to the website
+    driver.get(url)
 
     try:
         # Find the username and password fields and fill them in
@@ -245,11 +239,25 @@ def login(driver):
         logger.error(f"Error with login: {e}")
         raise
 
-    return token, chat_id
-      
+    return token, chat_id, url
+
+## Here starts the main program
+DEBUG_MODE = os.getenv('DEBUG','0').lower() in ('1','true')
+
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG_MODE else logging.INFO
+)
+logger = logging.getLogger("SEGO script")
+
+logger.info(f"Starting script. DEBUG_MODE is {'ON' if DEBUG_MODE else 'OFF'}")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("selenium").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 driver = initialize()
 try:
-    token, chat_id = login(driver)
+    token, chat_id, url = login(driver)
 except Exception as e:
     logger.error(f"Error login: {e}")
     sys.exit(-1)
@@ -263,7 +271,7 @@ try:
 
     # Switch to the new tab
     driver.switch_to.window(driver.window_handles[1])
-    driver.get("https://newapp.myinvestor.es/app/explore/investments/sego/projects")
+    driver.get(url)
 
     # Wait for an element that indicates successful login (e.g., a welcome message)
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))
