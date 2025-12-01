@@ -1,0 +1,19 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        hostPort: 8000
+      websecure:
+        hostPort: 8443
+    additionalArguments:
+      - "--experimental.kubernetesIngressNGINX"
+      - "--providers.kubernetesIngressNGINX"
+    providers:
+      kubernetesIngress:
+        publishedService:
+          enabled: false
