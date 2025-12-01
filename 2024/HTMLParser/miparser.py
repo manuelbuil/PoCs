@@ -1,4 +1,4 @@
-import asyncio, datetime, subprocess, os, sys, time
+import asyncio, datetime, logging, subprocess, os, sys, time
 from telegram import Bot
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -6,6 +6,16 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+DEBUG_MODE = os.getenv('DEBUG','0').lower() in ('1','true')
+
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG_MODE else logging.INFO
+)
+logger = logging.getLogger("SEGO script")
+
+logger.info(f"Starting script. DEBUG_MODE is {'ON' if DEBUG_MODE else 'OFF'}")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def time_for_alive_message():
   """
@@ -81,31 +91,28 @@ def  scrape_card(card_element):
 
 def get_opportunity_details(driver):
 
-    print("Inside the get_opportunity_details")
-
     # Find all the card elements using the derived XPath
     card_elements = driver.find_elements(By.XPATH, "//div[@class='slcnsf4 slcnsf5']/div")
 
-    print("Did we find any card?")
-    print(f"card_elements: {card_elements}")
+    logger.debug(f"card_elements: {card_elements}")
 
     all_opportunities = []
     if card_elements:
-        print(f"Found {len(card_elements)} cards.")
+        logger.debug(f"Found {len(card_elements)} cards.")
         for card in card_elements:
             opportunity_data = scrape_card(card)
             all_opportunities.append(opportunity_data)
-            print(f"Processed card: {opportunity_data}")
+            logger.debug(f"Processed card: {opportunity_data}")
     else:
-        print("No cards found on the page.")
+        logger.debug("No cards found on the page.")
 
-    print(f"\nAll opportunities: {all_opportunities}")
+    logger.debug(f"\nAll opportunities: {all_opportunities}")
 
     # Filter out the opportunities where 'conseguidos_percentage' is None
     filtered_opportunities = [opp for opp in all_opportunities if opp.get("conseguidos_percentage") is not None]
 
-    print(f"\nAll processed opportunities: {all_opportunities}")
-    print(f"\nFiltered opportunities (with data): {filtered_opportunities}")
+    logger.debug(f"\nAll processed opportunities: {all_opportunities}")
+    logger.debug(f"\nFiltered opportunities (with data): {filtered_opportunities}")
 
     return filtered_opportunities
  
@@ -155,12 +162,12 @@ def check_for_opportunities(driver):
 
 
     # If the message is not found, notify using Linux notification
-    print("New opportunities found! Sending notification...")
+    logger.info("New opportunities found! Sending notification...")
     driver.save_screenshot("screenshot.png")
 
     opportunities = get_opportunity_details(driver)
     for opp in opportunities:
-        print(f"opportunity: {opp}")
+        logger.info(f"opportunity: {opp}")
         if float(opp["conseguidos_percentage"].replace(",", ".").replace(" %", "")) < 97:
             subprocess.run(["notify-send", "New", "Item"])
             asyncio.run(send_telegram(token, chat_id, "New opportunities!"))
@@ -179,7 +186,8 @@ def initialize():
     """
     # Set up Chrome options
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    if not DEBUG_MODE:
+        chrome_options.add_argument("--headless")
 
     # Set up the browser driver (replace with the path to your driver)
     service = Service(executable_path="/usr/bin/chromedriver")
@@ -220,7 +228,7 @@ def login(driver):
         login_button = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "button[type='submit']._6p0dh75"))
         )
-        print("Login button found using CSS Selector")
+        logger.debug("Login button found using CSS Selector")
 
         # Scroll to the button
         driver.execute_script("arguments[0].scrollIntoView(true);", login_button)
@@ -231,22 +239,19 @@ def login(driver):
         )
 
         login_button.click()
-        print("Login button clicked")
+        logger.debug("Login button clicked")
    
     except Exception as e:
-        print(f"Error with login: {e}")
+        logger.error(f"Error with login: {e}")
         raise
 
     return token, chat_id
       
-
-print("Starting")
-
 driver = initialize()
 try:
     token, chat_id = login(driver)
 except Exception as e:
-    print(f"Error login: {e}")
+    logger.error(f"Error login: {e}")
     sys.exit(-1)
 
 try:
@@ -262,21 +267,23 @@ try:
 
     # Wait for an element that indicates successful login (e.g., a welcome message)
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))
-    print("Login successful!")
+    logger.debug("Login successful!")
 
 except:
-    print("Login failed.")
+    logger.error("Login failed.")
     asyncio.run(send_telegram(token, chat_id, "Error. Login failed"))
     sys.exit(-1)
 
 try:
     if check_for_opportunities(driver):
-        print("New opportunity notifications sent.")
+        logger.debug("New opportunity notifications sent.")
     else:
-        print("No new opportunities available.")
+        logger.info("No new opportunities available.")
         if time_for_alive_message():
             asyncio.run(send_telegram(token, chat_id, "Sigo vivo co. No hay nuevas oportunidades"))
 finally:
     # Close the browser (optional, you might want to keep it open for further actions)
-    # time.sleep(100)
-     driver.quit()
+    if not DEBUG_MODE:
+        driver.quit()
+    else:
+        time.sleep(100)
