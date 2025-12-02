@@ -6,7 +6,7 @@ metadata:
   namespace: test-migration
   annotations:
     # Nginx-specific annotation related to upstream vhost settings
-    nginx.ingress.kubernetes.io/upstream-vhost: "internal-host.local"
+    nginx.ingress.kubernetes.io/upstream-vhost: "isitworking"
 spec:
   ingressClassName: nginx
   rules:

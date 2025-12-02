@@ -4,10 +4,7 @@ metadata:
   name: cookie-example
   namespace: test-migration
   annotations:
-    # 1. Enable cookie-based affinity
     nginx.ingress.kubernetes.io/affinity: "cookie"
-    
-    # 2. Define the name of the cookie to be set
     nginx.ingress.kubernetes.io/session-cookie-name: "test-traefik-cookie"
     
 spec:

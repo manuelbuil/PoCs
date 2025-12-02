@@ -1,0 +1,9 @@
+additionalArguments:
+  - "--log.level=DEBUG"
+  - "--api.insecure=true"
+providers:
+  kubernetesIngressNginx:
+    # -- Enable Kubernetes Ingress NGINX provider
+    enabled: true
+    ingressClass: "demo"
+    controllerClass: "suse.com/demo"
