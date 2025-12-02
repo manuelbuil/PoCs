@@ -12,7 +12,7 @@ metadata:
   labels:
     app: whoami
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: whoami
@@ -38,6 +38,109 @@ spec:
     targetPort: 80
   selector:
     app: whoami
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cookie-example
+  namespace: test-migration
+  annotations:
+    # 1. Enable cookie-based affinity
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    
+    # 2. Define the name of the cookie to be set
+    nginx.ingress.kubernetes.io/session-cookie-name: "test-traefik-cookie"
+    
+spec:
+  ingressClassName: demo
+  rules:
+  - host: cookie.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: whoami-svc
+            port:
+              number: 80
+
+# curl -v -c cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48
+# for i in {1..5}; do curl -s -b cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48 | grep Hostname: ; sleep 0.5; done
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth
+  namespace: test-migration
+  annotations:
+    # Tells Traefik to challenge the client for credentials
+    nginx.ingress.kubernetes.io/auth-type: basic
+    # Specifies the source of the credentials (must be created beforehand)
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-secret
+    # Sets the prompt text displayed in the user browser
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - annotations.example.com'
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: auth.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: whoami-svc
+            port:
+              number: 80
+---
+# another-nonworking-annotation
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nonworking-rewrite
+  namespace: test-migration
+  annotations:
+    # Defines a new path for the service to never see "/app"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: nonworking.rewrite.example.com
+    http:
+      paths:
+      - path: /app(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: whoami-svc
+            port:
+              number: 80
+---
+# non-working-annotation.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: upstream-vhost
+  namespace: test-migration
+  annotations:
+    # Nginx-specific annotation related to upstream vhost settings
+    nginx.ingress.kubernetes.io/upstream-vhost: "internal-host.local"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: nonworking.upstreamvhost.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: whoami-svc
+            port:
+              number: 80
+
 ---
 # simple-test.yaml
 apiVersion: networking.k8s.io/v1
@@ -58,12 +161,13 @@ spec:
             name: whoami-svc
             port:
               number: 80
+
 ---
 # one-annotation-test.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: one-annotation
+  name: ssl-redirect
   namespace: test-migration
   annotations:
     # Nginx annotation for forced redirect
@@ -73,60 +177,11 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - oneannotation.example.com
+    - ssl.redirect.example.com
     # Does not have to exist
     secretName: dummy-tls-secret
   rules:
-  - host: oneannotation.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: whoami-svc
-            port:
-              number: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: few-annotations
-  namespace: test-migration
-  annotations:
-    # Tells Traefik to challenge the client for credentials
-    nginx.ingress.kubernetes.io/auth-type: basic
-    # Specifies the source of the credentials (must be created beforehand)
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth-secret
-    # Sets the prompt text displayed in the user browser
-    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - annotations.example.com'
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: annotations.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: whoami-svc
-            port:
-              number: 80
----
-# non-working-annotation.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: non-working
-  namespace: test-migration
-  annotations:
-    # Nginx-specific annotation related to upstream vhost settings
-    nginx.ingress.kubernetes.io/upstream-vhost: "internal-host.local"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: nonworking.example.com
+  - host: ssl.redirect.example.com
     http:
       paths:
       - path: /
@@ -137,26 +192,3 @@ spec:
             port:
               number: 80
 
----
-# another-nonworking-annotation
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: another-nonworking-annotation
-  namespace: test-migration
-  annotations:
-    # Defines a new path for the service to never see "/app"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: another.nonworking.annotation.example.com
-    http:
-      paths:
-      - path: /app(/|$)(.*)
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: whoami-svc
-            port:
-              number: 80

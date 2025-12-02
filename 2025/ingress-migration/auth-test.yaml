@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: few-annotations
+  name: auth
   namespace: test-migration
   annotations:
     # Tells Traefik to challenge the client for credentials
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: annotations.example.com
+  - host: auth.example.com
     http:
       paths:
       - path: /

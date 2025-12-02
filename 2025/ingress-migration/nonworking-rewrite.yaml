@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: another-nonworking-annotation
+  name: nonworking-rewrite
   namespace: test-migration
   annotations:
     # Defines a new path for the service to never see "/app"
@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: another.nonworking.annotation.example.com
+  - host: nonworking.rewrite.example.com
     http:
       paths:
       - path: /app(/|$)(.*)
