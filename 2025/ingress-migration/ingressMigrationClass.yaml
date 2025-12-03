@@ -1,6 +1,6 @@
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
-  name: demo
+  name: migration
 spec:
-  controller: suse.com/demo
+  controller: rke2.com/migration

@@ -46,14 +46,10 @@ metadata:
   name: cookie-example
   namespace: test-migration
   annotations:
-    # 1. Enable cookie-based affinity
     nginx.ingress.kubernetes.io/affinity: "cookie"
-    
-    # 2. Define the name of the cookie to be set
     nginx.ingress.kubernetes.io/session-cookie-name: "test-traefik-cookie"
-    
 spec:
-  ingressClassName: demo
+  ingressClassName: nginx
   rules:
   - host: cookie.example.com
     http:
@@ -65,9 +61,6 @@ spec:
             name: whoami-svc
             port:
               number: 80
-
-# curl -v -c cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48
-# for i in {1..5}; do curl -s -b cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48 | grep Hostname: ; sleep 0.5; done
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -126,7 +119,7 @@ metadata:
   namespace: test-migration
   annotations:
     # Nginx-specific annotation related to upstream vhost settings
-    nginx.ingress.kubernetes.io/upstream-vhost: "internal-host.local"
+    nginx.ingress.kubernetes.io/upstream-vhost: "isitworking"
 spec:
   ingressClassName: nginx
   rules:

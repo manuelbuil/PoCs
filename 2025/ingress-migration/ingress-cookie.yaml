@@ -8,7 +8,7 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-name: "test-traefik-cookie"
     
 spec:
-  ingressClassName: demo
+  ingressClassName: nginx
   rules:
   - host: cookie.example.com
     http:
@@ -21,5 +21,5 @@ spec:
             port:
               number: 80
 
-# curl -v -c cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48
+# curl -i -c cookie-jar.txt -H "Host: cookie.example.com" http://10.43.134.188
 # for i in {1..5}; do curl -s -b cookie-jar.txt -H "Host: cookie.example.com" http://10.43.69.48 | grep Hostname: ; sleep 0.5; done

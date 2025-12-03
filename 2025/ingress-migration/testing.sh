@@ -30,6 +30,7 @@ kubectl create ns test-migration
 echo "user:$(echo -n password | openssl passwd -stdin -apr1)" > auth_file.txt
 kubectl create secret generic basic-auth-secret --from-file=auth=auth_file.txt -n test-migration
 rm auth_file.txt
+sleep 3
 
 echo
 echo "========================== STARTING TEST ================================="
@@ -50,12 +51,33 @@ OUTPUT_TEST3=$($CURL -H "Host: nonworking.rewrite.example.com" http://$IP/app/te
 compare $OUTPUT_TEST3 "200" "rewrite (only works with nginx)"
 
 # TEST4 - COOKIES
-OUTPUT_TEST4=$(curl -s -c cookie-jar.txt -H "Host: cookie.example.com" http://$IP)
-for i in {1..5}; do curl -s -b cookie-jar.txt -H "Host: cookie.example.com" http://$IP | grep Hostname: ; sleep 0.5; done
+# Create the cookie-jar
+WORKING=yes
+INITIAL_RESPONSE=$(curl -s -i -c cookie-jar.txt -H "Host: cookie.example.com" http://$IP)
+INITIAL_HOSTNAME=$(echo "$INITIAL_RESPONSE" | grep "Hostname: ")
+if [ -z "$INITIAL_HOSTNAME" ]; then
+	WORKING=no
+else
+	for i in {1..5}; do
+		HOSTNAME=$(curl -s -b cookie-jar.txt -H "Host: cookie.example.com" http://$IP | grep Hostname: )
+		if [ "$INITIAL_HOSTNAME" != "$HOSTNAME" ]; then
+			WORKING=no
+			break
+		fi
+		sleep 0.5
+	done
+fi
+	
+	
+if [ "$WORKING" == "yes" ]; then
+	compare "yes" "yes" "cookies (should work)"
+else
+	compare "no" "yes" "cookies (should work)"
+fi
 
 # TEST5 - REDIRECT
 OUTPUT5=$($CURL -H "Host: ssl.redirect.example.com" http://$IP/)
-compare $OUTPUT5 "308" "ssl-redirect (should work)"
+compare $OUTPUT5 "301" "ssl-redirect (should work)"
 
 # TEST6 - UPSTREAM VHOST
 if curl -s -H "Host: nonworking.upstreamvhost.example.com" http://$IP/ | grep -q isitworking; then

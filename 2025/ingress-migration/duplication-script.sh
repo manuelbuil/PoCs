@@ -24,7 +24,7 @@ while read -r INGRESS; do
     #    - Change 'ingressClassName' from 'nginx' to 'traefik'
     MODIFIED_INGRESS=$(echo "$INGRESS" | jq \
         'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"], .status, .metadata.managedFields)' | \
-        jq --arg NEW_NAME "$NEW_NAME" '.metadata.name = $NEW_NAME | .spec.ingressClassName = "traefik"')
+        jq --arg NEW_NAME "$NEW_NAME" '.metadata.name = $NEW_NAME | .spec.ingressClassName = "migration"')
 
     # 3. Apply the modified (duplicated) Ingress resource
     echo "$MODIFIED_INGRESS" | kubectl apply -f -
