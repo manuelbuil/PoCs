@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CURL="curl -s -o /dev/null -w "%{http_code}""
+CURL="curl -s -o /dev/null --max-time 10 -w "%{http_code}""
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -77,7 +77,7 @@ fi
 
 # TEST5 - REDIRECT
 OUTPUT5=$($CURL -H "Host: ssl.redirect.example.com" http://$IP/)
-compare $OUTPUT5 "301" "ssl-redirect (should work)"
+compare $OUTPUT5 "308" "ssl-redirect (should work)"
 
 # TEST6 - UPSTREAM VHOST
 if curl -s -H "Host: nonworking.upstreamvhost.example.com" http://$IP/ | grep -q isitworking; then
