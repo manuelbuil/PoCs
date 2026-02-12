@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Add the ${nodeIP} as the argument for this script for ingress-nginx
+# Add the ${nodeIP}:8000 as the argument for this script for traefik
+
 CURL="curl -s -o /dev/null --max-time 10 -w "%{http_code}""
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -81,7 +84,7 @@ compare $OUTPUT5 "308" "ssl-redirect (should work)"
 
 # TEST6 - UPSTREAM VHOST
 if curl -s -H "Host: nonworking.upstreamvhost.example.com" http://$IP/ | grep -q isitworking; then
-    compare "good" "good" "vhost (only works with nginx)"
+    compare "isitworking string appears" "isitworking string appears" "vhost (only works with nginx)"
 else
-    compare "good" "bad" "vhost (only works with nginx)"
+    compare "isitworking string does not appear" "isitworking string appears" "vhost (only works with nginx)"
 fi
