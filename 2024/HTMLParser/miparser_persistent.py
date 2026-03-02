@@ -16,6 +16,15 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # --- Configuration and Utility Functions ---
 
+
+def env_int(name, default):
+    """Reads an integer environment variable and falls back to default on invalid values."""
+    value = os.getenv(name, str(default))
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
 def time_for_alive_message():
     """
     Checks the current time and returns True if it's within defined time windows
@@ -197,7 +206,7 @@ def initialize():
     """Initializes the WebDriver."""
     # Set up Chrome options
     chrome_options = Options()
-    if not DEBUG_MODE:
+    if not (DEBUG_MODE or PERSISTENT_BROWSER):
         chrome_options.add_argument("--headless")
 
     # Set up the browser driver (replace with the path to your driver)
@@ -252,9 +261,73 @@ def login(driver):
 
     return token, chat_id, url
 
+
+def is_login_page(driver):
+    """Returns True if the browser is currently showing the login page."""
+    return len(driver.find_elements(By.XPATH, "//input[@placeholder='DNI / NIE / Pasaporte']")) > 0
+
+
+def wait_for_authenticated_session(driver, timeout=20):
+    """Waits until an element indicating authenticated session is present."""
+    WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]"))
+    )
+
+
+async def periodic_monitoring_loop(driver, token, chat_id, url):
+    """Keeps browser session alive and checks opportunities periodically in a new tab."""
+    logger.info(f"Persistent monitoring mode enabled. Interval: {CHECK_INTERVAL_SECONDS}s")
+
+    while True:
+        try:
+            logger.info("Starting periodic opportunity check...")
+            driver.switch_to.window(driver.window_handles[0])
+            driver.execute_script("window.open('about:blank', '_blank');")
+            driver.switch_to.window(driver.window_handles[-1])
+            driver.get(url)
+
+            if is_login_page(driver):
+                logger.warning("Session appears logged out. Re-authenticating...")
+                await send_telegram(token, chat_id, "Session expired. Re-authenticating...")
+
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+
+                login(driver)
+                time.sleep(POST_LOGIN_WAIT_SECONDS)
+                wait_for_authenticated_session(driver, timeout=30)
+
+                await send_telegram(token, chat_id, "Re-authentication successful. Monitoring resumed.")
+            else:
+                if await check_for_opportunities(driver, token, chat_id):
+                    logger.debug("Opportunity check completed.")
+                else:
+                    logger.info("No new opportunities available.")
+                    if time_for_alive_message():
+                        await send_telegram(token, chat_id, "Sigo vivo co from laptop. No hay nuevas oportunidades")
+
+        except Exception as e:
+            logger.error(f"Error in monitoring loop: {e}")
+            await send_telegram(token, chat_id, f"Error in monitoring loop: {str(e)}")
+
+        finally:
+            try:
+                while len(driver.window_handles) > 1:
+                    driver.switch_to.window(driver.window_handles[-1])
+                    driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+                driver.get(url)
+            except Exception as e:
+                logger.warning(f"Could not fully reset tabs/session state: {e}")
+
+        await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+
 # --- Global Configuration and Main Execution ---
 
 DEBUG_MODE = os.getenv('DEBUG','0').lower() in ('1','true')
+PERSISTENT_BROWSER = os.getenv('PERSISTENT_BROWSER', '0').lower() in ('1', 'true')
+CHECK_INTERVAL_SECONDS = env_int('CHECK_INTERVAL_SECONDS', 180)
+POST_LOGIN_WAIT_SECONDS = env_int('POST_LOGIN_WAIT_SECONDS', 14)
 
 # Set up logging before main execution
 logging.basicConfig(
@@ -274,7 +347,10 @@ async def main():
     """
     The main asynchronous execution function for the scraping script.
     """
-    logger.info(f"Starting script. DEBUG_MODE is {'ON' if DEBUG_MODE else 'OFF'}")
+    logger.info(
+        f"Starting script. DEBUG_MODE={'ON' if DEBUG_MODE else 'OFF'} | "
+        f"PERSISTENT_BROWSER={'ON' if PERSISTENT_BROWSER else 'OFF'}"
+    )
 
     driver = initialize()
 
@@ -285,18 +361,8 @@ async def main():
         sys.exit(-1)
 
     try:
-        # Wait for login to complete (adjust time as needed)
-        time.sleep(14)  # Give the site time to log you in
-
-        # Open a new tab
-        driver.execute_script("window.open('');")
-
-        # Switch to the new tab
-        driver.switch_to.window(driver.window_handles[1])
-        driver.get(url)
-
-        # Wait for an element that indicates successful login
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'SEGO Factoring')]")))
+        time.sleep(POST_LOGIN_WAIT_SECONDS)
+        wait_for_authenticated_session(driver, timeout=20)
         logger.debug("Login successful!")
 
     except TimeoutException:
@@ -307,6 +373,14 @@ async def main():
         logger.error(f"Unexpected error during post-login navigation: {e}")
         await send_telegram(token, chat_id, "Error. Login failed (Unexpected error).")
         sys.exit(-1)
+
+    if PERSISTENT_BROWSER:
+        try:
+            await send_telegram(token, chat_id, f"Monitoring started in persistent mode. Interval={CHECK_INTERVAL_SECONDS}s")
+            await periodic_monitoring_loop(driver, token, chat_id, url)
+        finally:
+            driver.quit()
+        return
 
     try:
         if await check_for_opportunities(driver, token, chat_id):
