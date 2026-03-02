@@ -301,7 +301,7 @@ case "$K8S_DISTRO" in
   "rke2-ha")
     echo "rke2 in HA mode"
     cp aws/template/aws.tf.template aws/aws.tf
-    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/5/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
     applyTerraform aws HA

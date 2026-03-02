@@ -127,7 +127,7 @@ resource "aws_security_group" "allow_k8s" {
 resource "aws_instance" "myInstance" {
   count         = %COUNT%
   ami           = "%AMI%"
-  instance_type = "t3.medium"
+  instance_type = "t3.large"
 
   subnet_id = aws_subnet.dualStack-subnet.id
 
