@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: imagepatcher-traefik-reader
+  namespace: kube-system
+rules:
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    resourceNames: ["rke2-traefik"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: imagepatcher-traefik-reader
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: imagepatcher
+    namespace: imagepatcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: imagepatcher-traefik-reader

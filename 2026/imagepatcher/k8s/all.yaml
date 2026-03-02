@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: imagepatcher
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: imagepatcher
+  namespace: imagepatcher
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: imagepatcher-traefik-reader
+  namespace: kube-system
+rules:
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    resourceNames: ["rke2-traefik"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: imagepatcher-traefik-reader
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: imagepatcher
+    namespace: imagepatcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: imagepatcher-traefik-reader
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagepatcher
+  namespace: imagepatcher
+  labels:
+    app: imagepatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imagepatcher
+  template:
+    metadata:
+      labels:
+        app: imagepatcher
+    spec:
+      serviceAccountName: imagepatcher
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      containers:
+        - name: imagepatcher
+          image: mbuilsuse/imagepatcher:testing1-20260226
+          imagePullPolicy: Always
+          env:
+            - name: IMAGEPATCHER_WRITE_HELMCHARTCONFIG
+              value: "true"
+            - name: IMAGEPATCHER_MANIFESTS_DIR
+              value: /host-rke2-manifests
+            - name: IMAGEPATCHER_HELMCHARTCONFIG_FILE
+              value: rke2-traefik-config.yaml
+            - name: IMAGEPATCHER_HELMCHARTCONFIG_NAME
+              value: rke2-traefik
+          volumeMounts:
+            - name: rke2-manifests
+              mountPath: /host-rke2-manifests
+      volumes:
+        - name: rke2-manifests
+          hostPath:
+            path: /var/lib/rancher/rke2/server/manifests
+            type: Directory
