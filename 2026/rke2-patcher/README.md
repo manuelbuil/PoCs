@@ -68,6 +68,8 @@ rke2-patcher image-patch traefik --dry-run
 - Writes a `HelmChartConfig` manifest so RKE2 can use the latest tag.
 - With `--dry-run`, prints the exact `HelmChartConfig` that would be written and does not write any file.
 - Refuses to patch if the target tag is not newer than the currently running tag.
+- If a `HelmChartConfig` object already exists in the cluster for the same chart name and namespace, asks for confirmation before attempting a merge.
+- If merge is approved, prints the merged output in dry-run format and asks for a second confirmation before writing.
 - For `canal`, it updates the chart values under `calico.cniImage`, `calico.nodeImage`, `calico.flexvolImage`, and `calico.kubeControllerImage`.
 - For `calico-operator`, it updates `tigeraOperator.image`, `tigeraOperator.version`, and `tigeraOperator.registry`.
 - For `cilium-operator`, it updates `operator.image.repository` and `operator.image.tag`.

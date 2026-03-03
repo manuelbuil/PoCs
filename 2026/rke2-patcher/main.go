@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"github.com/manuelbuil/PoCs/2026/rke2-patcher/internal/patcher"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 func main() {
 	log.SetFlags(0)
@@ -187,8 +188,57 @@ func runImagePatch(component components.Component, dryRun bool) error {
 		return err
 	}
 
+	filePath, generatedContent := patcher.BuildHelmChartConfig(component.Name, component.HelmChartConfigName, currentImageName, latestTag.Name)
+
 	if dryRun {
-		filePath, content := patcher.BuildHelmChartConfig(component.Name, component.HelmChartConfigName, currentImageName, latestTag.Name)
+		fmt.Printf("component: %s\n", component.Name)
+		fmt.Printf("current image: %s\n", runningImage)
+		fmt.Printf("current tag: %s\n", currentImageTag)
+		fmt.Printf("new tag: %s\n", latestTag.Name)
+		fmt.Printf("dry-run: true\n")
+		fmt.Printf("would write HelmChartConfig: %s\n", filePath)
+		fmt.Println("---")
+		fmt.Print(generatedContent)
+
+		return nil
+	}
+
+	targetName, targetNamespace, err := patcher.HelmChartConfigIdentityFromContent(generatedContent)
+	if err != nil {
+		return err
+	}
+
+	contentToWrite := generatedContent
+	conflicts, err := kube.ListHelmChartConfigsByIdentity(targetName, targetNamespace)
+	if err != nil {
+		return err
+	}
+
+	if len(conflicts) > 0 {
+		fmt.Printf("warning: found a HelmChartConfig object in the cluster for this component:\n")
+		for _, conflict := range conflicts {
+			fmt.Printf("- %s/%s\n", conflict.Namespace, conflict.Name)
+		}
+
+		firstConfirm, err := promptYesNo("Merging both HelmChartConfigs will be tried. Continue? [Yes/No]: ")
+		if err != nil {
+			return err
+		}
+		if !firstConfirm {
+			fmt.Println("aborted: merge was not approved")
+			return nil
+		}
+
+		existingContents := make([]string, 0, len(conflicts))
+		for _, conflict := range conflicts {
+			existingContents = append(existingContents, conflict.Content)
+		}
+
+		mergedContent, err := patcher.MergeHelmChartConfigWithContents(generatedContent, existingContents)
+		if err != nil {
+			return err
+		}
+		contentToWrite = mergedContent
 
 		fmt.Printf("component: %s\n", component.Name)
 		fmt.Printf("current image: %s\n", runningImage)
@@ -197,12 +247,19 @@ func runImagePatch(component components.Component, dryRun bool) error {
 		fmt.Printf("dry-run: true\n")
 		fmt.Printf("would write HelmChartConfig: %s\n", filePath)
 		fmt.Println("---")
-		fmt.Print(content)
+		fmt.Print(contentToWrite)
 
-		return nil
+		secondConfirm, err := promptYesNo("Apply this HelmChartConfig now? [Yes/No]: ")
+		if err != nil {
+			return err
+		}
+		if !secondConfirm {
+			fmt.Println("aborted: write was not approved")
+			return nil
+		}
 	}
 
-	filePath, err := patcher.WriteHelmChartConfig(component.Name, component.HelmChartConfigName, currentImageName, latestTag.Name)
+	err = patcher.WriteHelmChartConfigContent(filePath, contentToWrite)
 	if err != nil {
 		return err
 	}
@@ -214,6 +271,27 @@ func runImagePatch(component components.Component, dryRun bool) error {
 	fmt.Printf("wrote HelmChartConfig: %s\n", filePath)
 
 	return nil
+}
+
+func promptYesNo(prompt string) (bool, error) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print(prompt)
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return false, fmt.Errorf("failed to read user input: %w", err)
+		}
+
+		normalized := strings.ToLower(strings.TrimSpace(input))
+		switch normalized {
+		case "y", "yes":
+			return true, nil
+		case "n", "no":
+			return false, nil
+		default:
+			fmt.Println("please answer Yes or No")
+		}
+	}
 }
 
 func ensurePatchTargetIsNewer(repository string, currentTag string, targetTag string) error {
