@@ -62,6 +62,8 @@ case "$cloud_provider" in
   "aws")
     local public_ips
     public_ips=$(terraform output -json | jq -r '.publicIP.value[]')
+    local public_ip_gpu
+    public_ip_gpu=$(terraform output -json | jq -r '.publicIPGPU.value // empty')
 
     local os_prefix
     case "$vm_config_type" in
@@ -90,6 +92,11 @@ case "$cloud_provider" in
       sed -i "/^Host $host_entry/{n;s/Hostname .*/Hostname $ip/}" ~/.ssh/config
       i=$((i+1))
     done
+
+    if [ "$os_prefix" = "suse" ] && [ -n "$public_ip_gpu" ]; then
+      echo "Updating Host aws-suse-gpu with IP $public_ip_gpu"
+      sed -i "/^Host aws-suse-gpu/{n;s/Hostname .*/Hostname $public_ip_gpu/}" ~/.ssh/config
+    fi
   ;;
   *)
     echo "Something went wrong in the ssh config update for cloud provider: $cloud_provider"
@@ -115,10 +122,28 @@ updaterke1cluster() {
 # applyTerraform runs terraform apply and refresh to get the publicIP of the new VMs
 applyTerraform () {
 pushd $1
-terraform apply --auto-approve
-sleep 10
-terraform refresh
-sleep 5
+tf_var_file="$3"
+tf_var_args=""
+if [ -n "$tf_var_file" ]; then
+  tf_var_args="-var-file=$tf_var_file"
+fi
+
+terraform apply --auto-approve $tf_var_args
+
+# Wait until all public IPs are assigned before updating SSH config
+echo "Waiting for public IPs to be assigned..."
+while true; do
+  terraform refresh $tf_var_args > /dev/null 2>&1
+  public_ips=$(terraform output -json | jq -r '.publicIP.value[]' 2>/dev/null | grep -v '^$' | wc -l)
+  total_ips=$(terraform output -json | jq -r '.publicIP.value | length' 2>/dev/null)
+  if [ "$public_ips" -ge "$total_ips" ] && [ "$total_ips" -gt 0 ]; then
+    echo "All $total_ips public IPs are ready."
+    break
+  fi
+  echo "  Still waiting... ($public_ips/$total_ips IPs ready)"
+  sleep 5
+done
+
 # Determine the second argument for changeSshConfig based on the cloud provider and context
 if [ "$1" = "aws" ]; then
     changeSshConfig "$1" "$OS_TYPE" # Pass the OS_TYPE for AWS
@@ -248,7 +273,7 @@ case "$K8S_DISTRO" in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
-    applyTerraform aws
+    applyTerraform aws "" "spain.tfvars"
     echo "Access ${ipv4public1//\"/}.sslip.io in your browser"
   ;;
   "rancher-prime-aws")
@@ -257,7 +282,7 @@ case "$K8S_DISTRO" in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
-    applyTerraform aws
+    applyTerraform aws "" "spain.tfvars"
     echo "Access ${ipv4public1//\"/}.sslip.io in your browser"
   ;;
   "k3s-aws")
@@ -266,14 +291,14 @@ case "$K8S_DISTRO" in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/3/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
-    applyTerraform aws
+    applyTerraform aws "" "spain.tfvars"
   ;;
   "k3s-ipv6")
     echo "k3s-ipv6 option"
     cp aws/template/aws.tf.template aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3snoDS.sh"/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
-    applyTerraform aws
+    applyTerraform aws "" "spain.tfvars"
   ;;
   "rke2")
     echo "rke2 option with cni plugin $CNI_PLUGIN"
@@ -296,7 +321,7 @@ case "$K8S_DISTRO" in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf # Use the determined AMI_ID_AWS
-    applyTerraform aws
+    applyTerraform aws "" "spain.tfvars"
   ;;
   "rke2-ha")
     echo "rke2 in HA mode"
@@ -304,16 +329,16 @@ case "$K8S_DISTRO" in
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/5/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
-    applyTerraform aws HA
+    applyTerraform aws HA "spain.tfvars"
   ;;
   "demo-gpu")
     echo "demo-gpu"
     cp aws/template/aws-demo.tf.template aws/aws.tf
-    AMI_ID_AWS="ami-07a28cc68132fccf1" # SLES15 SP7 in AWS Ireland
+    AMI_ID_AWS="ami-0d2945b6b30408829" # SLES16 SP0 in AWS Ireland
     OS_TYPE="sles"
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
-    applyTerraform aws
+    applyTerraform aws "" "demo-ireland.tfvars"
   ;;
   *)
     echo "Error: Invalid --k8s option: $K8S_DISTRO"

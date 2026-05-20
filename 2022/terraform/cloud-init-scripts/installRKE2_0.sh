@@ -2,7 +2,7 @@
 apt update
 
 # Little server for the other VM to find me
-echo "hola" | nc -l 43210 &
+for i in 1 2; do echo "hola" | nc -l 43210; done &
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
@@ -12,7 +12,7 @@ token: "secret"
 cluster-cidr: 10.42.0.0/16,2001:cafe:42::/56
 service-cidr: 10.43.0.0/16,2001:cafe:43::/112
 cni: canal
-ingress-controller: traefik
+prime: true
 # curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL="latest" sh -
 EOF
 

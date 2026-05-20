@@ -1,0 +1,5 @@
+existing_internet_gateway_name = "k3s-rke2-ig"
+existing_vpc_name              = "k3s-rke2-vpc"
+existing_subnet_name           = "k3s-rke2-subnet-dualStack"
+existing_route_table_name      = "rke2-k3s-routing"
+existing_security_group_name   = "allow_k8s"
