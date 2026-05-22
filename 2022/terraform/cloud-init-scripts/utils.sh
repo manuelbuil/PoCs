@@ -17,7 +17,7 @@ previp(){
 listCloserIPs(){
     IP=$1
     local -a IPs
-    for i in $(seq 1 14); do
+    for i in $(seq 1 50); do
         IPnext=$(nextip ${IP} ${i})
         IPprev=$(previp ${IP} ${i})
         IPs+=(${IPnext} ${IPprev})
