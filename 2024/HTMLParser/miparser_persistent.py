@@ -3,6 +3,7 @@ import datetime
 import logging
 import subprocess
 import os
+import re
 import sys
 import time
 from telegram import Bot, error as telegram_error # Import specific error for better handling
@@ -24,6 +25,14 @@ def env_int(name, default):
         return int(value)
     except ValueError:
         return default
+
+
+def env_bool(name, default=False):
+    """Reads a boolean environment variable."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in ('1', 'true', 'yes', 'on')
 
 def time_for_alive_message():
     """
@@ -82,28 +91,32 @@ async def send_telegram(token, chat_id, message):
 def scrape_card(card_element):
     """Extracts information from a single card element."""
     opportunity = {}
+    card_text = card_element.text or ""
     
-    # 1 - Tipo Interes
+    # 1 - Nombre / título
     try:
-        opportunity["tipo_interes"] = card_element.find_element(By.XPATH, ".//div[1]/div[3]/div[3]/div[1]/h6").text
+        opportunity["nombre"] = card_element.find_element(By.TAG_NAME, "h4").text
     except NoSuchElementException: # Catch specific exception
-        opportunity["tipo_interes"] = None
+        opportunity["nombre"] = None
 
-    # 2 - Con seguro (verificar si el texto existe)
+    # 2 - Tipo interes actual
+    interest_match = re.search(r"Inter[eé]s\s+(?:bruto|neto)\s+([0-9]+(?:,[0-9]+)?\s*%)(?:\s+anual)?", card_text, flags=re.IGNORECASE)
+    opportunity["tipo_interes"] = interest_match.group(1) if interest_match else None
+
+    # 3 - Con seguro (verificar si el texto existe)
     try:
         card_element.find_element(By.XPATH, ".//*[text()='Con seguro']")
         opportunity["operacion_asegurada"] = True
     except NoSuchElementException: # Catch specific exception
         opportunity["operacion_asegurada"] = False
 
-    # 3 - Conseguido percentage
-    try:
-        conseguido_div = card_element.find_element(By.XPATH, ".//div[contains(., 'Conseguido')]")
-        conseguido_value = conseguido_div.find_element(By.CSS_SELECTOR, "h6").text
-        percentage = conseguido_value.split("- ")[-1]
-        opportunity["conseguidos_percentage"] = percentage
-    except NoSuchElementException: # Catch specific exception
-        opportunity["conseguidos_percentage"] = None
+    # 4 - Conseguido percentage from visible card text
+    conseguido_match = re.search(
+        r"Conseguido\s+[\d\.,]+\s*€\s*-\s*([0-9]+(?:,[0-9]+)?)\s*%",
+        card_text,
+        flags=re.IGNORECASE,
+    )
+    opportunity["conseguidos_percentage"] = f"{conseguido_match.group(1)} %" if conseguido_match else None
 
     return opportunity
 
@@ -134,6 +147,34 @@ def get_opportunity_details(driver):
     return filtered_opportunities
 
 
+def log_diagnostics_for_cards(driver):
+    """Logs raw card data to help update broken selectors."""
+    try:
+        card_elements = driver.find_elements(By.XPATH, "//div[@class='slcnsf4 slcnsf5']/div")
+        logger.warning(f"Diagnostic mode: found {len(card_elements)} raw cards with the current card selector.")
+
+        for index, card in enumerate(card_elements[:2], start=1):
+            try:
+                card_text = (card.text or "").strip()
+                logger.warning(f"Diagnostic card #{index} text:\n{card_text}")
+            except Exception as e:
+                logger.warning(f"Diagnostic card #{index} text extraction failed: {e}")
+
+            try:
+                card_html = driver.execute_script("return arguments[0].outerHTML;", card)
+                logger.warning(f"Diagnostic card #{index} HTML:\n{card_html[:4000]}")
+            except Exception as e:
+                logger.warning(f"Diagnostic card #{index} HTML extraction failed: {e}")
+
+        try:
+            page_text = driver.find_element(By.TAG_NAME, "body").text
+            logger.warning(f"Diagnostic page text snippet:\n{page_text[:4000]}")
+        except Exception as e:
+            logger.warning(f"Diagnostic page text extraction failed: {e}")
+    except Exception as e:
+        logger.warning(f"Diagnostic logging failed: {e}")
+
+
 async def pretty_telegram(opportunity, token, chat_id):
     """Formats and sends a Telegram message for a single opportunity."""
     if not opportunity["operacion_asegurada"]:
@@ -143,6 +184,7 @@ async def pretty_telegram(opportunity, token, chat_id):
     # Using f-strings and multiline strings (triple quotes) is cleaner than \
     message = f"""
 Operación asegurada
+Proyecto: {opportunity.get("nombre")}
 Tipo interés: {opportunity["tipo_interes"]}
 Porcentaje conseguidos: {opportunity["conseguidos_percentage"]}
 """
@@ -177,12 +219,23 @@ async def check_for_opportunities(driver, token, chat_id):
         return False
 
 
-    # If the message is not found, notify using Linux notification
-    logger.info("New opportunities found! Sending notification...")
+    # If the message is not found, there may be opportunities to parse.
+    logger.info("Potential opportunity cards detected. Extracting details...")
     if DEBUG_MODE:
         driver.save_screenshot("screenshot.png")
 
     opportunities = get_opportunity_details(driver)
+    if not opportunities and DIAGNOSTIC_LOGGING:
+        log_diagnostics_for_cards(driver)
+
+    if not opportunities:
+        logger.info("Potential cards detected, but no parseable opportunities were found.")
+        return False
+
+    logger.info(f"Parsed {len(opportunities)} opportunities with percentage data.")
+
+    eligible_notifications = 0
+
     for opp in opportunities:
         logger.info(f"Opportunity: {opp}")
 
@@ -195,9 +248,15 @@ async def check_for_opportunities(driver, token, chat_id):
             continue
 
         if percentage < 97:
+            eligible_notifications += 1
             subprocess.run(["notify-send", "New", "Item"])
             await send_telegram(token, chat_id, "New opportunities!")
             await pretty_telegram(opp, token, chat_id)
+
+    if eligible_notifications == 0:
+        logger.info("No parsed opportunities are below the notification threshold (97%).")
+    else:
+        logger.info(f"Sent notifications for {eligible_notifications} opportunities below 97%.")
 
     return True
 
@@ -328,6 +387,7 @@ DEBUG_MODE = os.getenv('DEBUG','0').lower() in ('1','true')
 PERSISTENT_BROWSER = os.getenv('PERSISTENT_BROWSER', '0').lower() in ('1', 'true')
 CHECK_INTERVAL_SECONDS = env_int('CHECK_INTERVAL_SECONDS', 180)
 POST_LOGIN_WAIT_SECONDS = env_int('POST_LOGIN_WAIT_SECONDS', 14)
+DIAGNOSTIC_LOGGING = env_bool('DIAGNOSTIC_LOGGING', False)
 
 # Set up logging before main execution
 logging.basicConfig(
