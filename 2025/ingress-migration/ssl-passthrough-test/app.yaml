@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-tls-config
+  namespace: default
+data:
+  nginx.conf: |
+    events {}
+    http {
+        server {
+            listen 8443 ssl;
+            server_name passthrough.test.local;
+
+            # Using default self-signed certs included in the image for testing
+            ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+            ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+
+            location / {
+                return 200 'SSL Passthrough is working via NGINX!\n';
+                add_header Content-Type text/plain;
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-tls
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-tls
+  template:
+    metadata:
+      labels:
+        app: echo-tls
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        # We need the 'ssl-cert' package files, so we'll quickly generate a self-signed cert on startup
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache openssl
+            mkdir -p /etc/ssl/certs /etc/ssl/private
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+              -keyout /etc/ssl/private/ssl-cert-snakeoil.key \
+              -out /etc/ssl/certs/ssl-cert-snakeoil.pem \
+              -subj "/CN=my-backend-snakeoil"
+            nginx -g "daemon off;"
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: config-volume
+        configMap:
+          name: nginx-tls-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-tls-svc
+  namespace: default
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+  selector:
+    app: echo-tls
+
