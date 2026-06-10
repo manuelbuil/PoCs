@@ -8,12 +8,15 @@ The latter includes also information for RKE2 customers and the format is ASCII
 The task is to cherry-pick commits from https://github.com/rancher/rke2-docs to this local project (rke2-product-docs)
 
 ### Procedure
-1. Inspect https://github.com/rancher/rke2-docs commit messages during the last week
+1. Inspect https://github.com/rancher/rke2-docs commit messages during the last 2 weeks
 2. Verify if they were already ported in https://github.com/rancher/rke2-product-docs
 3. If they were ported, do nothing.
 4. If they were not ported, cherry-pick each of them and adjust it to rke2-product-docs (ascii, etc. Check "known edge cases")
-5. Create a different branch in the local project for each of the unsync commits
-6. Push the branches to the Github project https://github.com/manuelbuil/rke2-product-docs so that I can later create a PR in the upstream project
+5. Do not include this CLAUDE.md in the commit 
+6. Create a different branch in the local project for each of the unsync commits
+7. Start the commit with [sync rke2-docs]
+8. Push the branches to the Github project https://github.com/manuelbuil/rke2-product-docs so that I can later create a PR in the upstream project
+
 
 ### Validation
 Check if the job completely successfully.
@@ -24,3 +27,5 @@ Check if the job completely successfully.
 - rke2-product-docs includes a few lines in the beggining of each file. One if revdate, which should be updated when there is a change in that page
 - rke2-product-docs support two languages (en, zh). When a page changes in "en", there should be a change in "zh" as well. There is no need to translate, it could be English as well.
 - rke2-product-docs includes some specific information for RKE2 Prime customers, for example how to install. That information must be kept in rke2-product-docs
+- when syncing release notes, do not add an extra column
+- when syncing release notes, for each row, ask the user what version of ingress-nginx should it add. This is not part of rke2-docs
