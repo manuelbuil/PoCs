@@ -19,6 +19,8 @@ The task is to cherry-pick commits from https://github.com/rancher/rke2-docs to 
 9. Explain in the commit what changed and add a link to the PR from rke2-docs
 10. Push the branches to the Github project https://github.com/manuelbuil/rke2-product-docs so that I can later create a PR in the upstream project
 
+### Prerequisites
+- RKE2_IMAGES_BASE_URL environment variable must be set
 
 ### Validation
 Check if the job completely successfully.
@@ -30,6 +32,11 @@ Check if the job completely successfully.
 - rke2-product-docs support two languages (en, zh). When a page changes in "en", there should be a change in "zh" as well. There is no need to translate, it could be English as well.
 - rke2-product-docs includes some specific information for RKE2 Prime customers, for example how to install. That information must be kept in rke2-product-docs
 - when syncing release notes, do not add an extra column
-- when syncing release notes, for each row, ask the user what version of ingress-nginx should it add. This is not part of rke2-docs
+- when syncing release notes, determine the ingress-nginx version for each RKE2 release:
+  - IMPORTANT: Check if the RKE2_IMAGES_BASE_URL environment variable is set. If not, warn the user and stop.
+  - For RKE2 v1.36+: fetch ${RKE2_IMAGES_BASE_URL}/rke2/{version}/rke2-images-ingress-nginx.linux-amd64.txt
+  - For RKE2 < v1.36: fetch ${RKE2_IMAGES_BASE_URL}/rke2/{version}/rke2-images-all.linux-amd64.txt
+  - Extract the version tag from the `nginx-ingress-controller` line
+  - Note: ingress-nginx version info is not part of rke2-docs
 
 # Ignore this: git submodule update --init --recursive --force
