@@ -88,6 +88,38 @@ async def send_telegram(token, chat_id, message):
     except Exception as e:
         logger.error(f"Unexpected error while sending Telegram message: {e}")
 
+
+def load_blacklist(filename="blacklist.txt"):
+    """Loads blacklist patterns from file if it exists in script directory."""
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
+    if not os.path.exists(file_path):
+        logger.info(f"Blacklist file not found at {file_path}. Continuing without blacklist filtering.")
+        return []
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            patterns = [line.strip().lower() for line in f if line.strip()]
+        logger.info(f"Loaded {len(patterns)} blacklist entries from {file_path}.")
+        return patterns
+    except Exception as e:
+        logger.warning(f"Could not read blacklist file {file_path}: {e}. Continuing without blacklist filtering.")
+        return []
+
+
+def opportunity_matches_blacklist(opportunity, blacklist_patterns):
+    """Returns matching blacklist pattern if opportunity text matches, else None."""
+    if not blacklist_patterns:
+        return None
+
+    searchable_text = str(opportunity.get("nombre") or "").lower()
+
+    for pattern in blacklist_patterns:
+        if pattern in searchable_text:
+            return pattern
+
+    return None
+
 def scrape_card(card_element):
     """Extracts information from a single card element."""
     opportunity = {}
@@ -225,6 +257,7 @@ async def check_for_opportunities(driver, token, chat_id):
         driver.save_screenshot("screenshot.png")
 
     opportunities = get_opportunity_details(driver)
+    blacklist_patterns = load_blacklist()
     if not opportunities and DIAGNOSTIC_LOGGING:
         log_diagnostics_for_cards(driver)
 
@@ -238,6 +271,14 @@ async def check_for_opportunities(driver, token, chat_id):
 
     for opp in opportunities:
         logger.info(f"Opportunity: {opp}")
+
+        matched_pattern = opportunity_matches_blacklist(opp, blacklist_patterns)
+        if matched_pattern:
+            logger.info(
+                f"Skipping notification for blacklisted opportunity '{opp.get('nombre')}' "
+                f"(matched pattern: '{matched_pattern}')."
+            )
+            continue
 
         # Safely convert percentage string to float
         try:

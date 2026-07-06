@@ -8,14 +8,16 @@ The latter includes also information for RKE2 customers and the format is ASCII
 The task is to cherry-pick commits from https://github.com/rancher/rke2-docs to this local project (rke2-product-docs)
 
 ### Procedure
-1. Inspect https://github.com/rancher/rke2-docs commit messages during the last 2 weeks
-2. Verify if they were already ported in https://github.com/rancher/rke2-product-docs
-3. If they were ported, do nothing.
-4. If they were not ported, cherry-pick each of them and adjust it to rke2-product-docs (ascii, etc. Check "known edge cases")
-5. Do not include this CLAUDE.md in the commit 
-6. Create a different branch in the local project for each of the unsync commits
-7. Start the commit with [sync rke2-docs]
-8. Push the branches to the Github project https://github.com/manuelbuil/rke2-product-docs so that I can later create a PR in the upstream project
+1. Fetch all commits from https://github.com/rancher/rke2-docs from the last 2 weeks
+2. Filter out: dependabot commits, merge commits that are already covered by individual commits
+3. Verify if they were already ported in https://github.com/rancher/rke2-product-docs
+4. If they were ported, do nothing.
+5. If they were not ported, cherry-pick each of them and adjust it to rke2-product-docs (ascii, etc. Check "known edge cases")
+6. Do not include this CLAUDE.md in the commit 
+7. Create a different branch in the local project for each of the unsync commits
+8. Start the commit with [sync rke2-docs]
+9. Explain in the commit what changed and add a link to the PR from rke2-docs
+10. Push the branches to the Github project https://github.com/manuelbuil/rke2-product-docs so that I can later create a PR in the upstream project
 
 
 ### Validation
@@ -29,3 +31,5 @@ Check if the job completely successfully.
 - rke2-product-docs includes some specific information for RKE2 Prime customers, for example how to install. That information must be kept in rke2-product-docs
 - when syncing release notes, do not add an extra column
 - when syncing release notes, for each row, ask the user what version of ingress-nginx should it add. This is not part of rke2-docs
+
+# Ignore this: git submodule update --init --recursive --force
