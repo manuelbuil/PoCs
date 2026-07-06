@@ -1,7 +1,28 @@
 #!/bin/bash
 
 #RKE2VERSION=v1.28.4+rke2r1
-apt update
+if [ -f /etc/os-release ]; then
+    # Source the file to load its variables (like $ID)
+    . /etc/os-release
+
+    case "$ID" in
+        ubuntu)
+            echo "Detected Ubuntu. Running 'apt update'..."
+            apt update
+            ;;
+        sles)
+            echo "Detected SLES. Running 'zypper ref'..."
+            zypper ref
+            zypper up
+            ;;
+        *)
+            echo "Unsupported OS ID: $ID"
+            ;;
+    esac
+else
+    echo "Error: Cannot detect OS (Missing /etc/os-release)"
+    exit 1
+fi
 
 wget https://raw.githubusercontent.com/manuelbuil/PoCs/refs/heads/main/2022/terraform/cloud-init-scripts/utils.sh -O /tmp/utils.sh
 

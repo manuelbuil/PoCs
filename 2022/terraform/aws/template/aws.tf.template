@@ -147,6 +147,29 @@ resource "aws_instance" "myInstance" {
   }
 }
 
+resource "aws_instance" "kataNestedVM" {
+  count         = %KATA_COUNT%
+  ami           = "%AMI%"
+  instance_type = "%KATA_INSTANCE_TYPE%"
+
+  subnet_id = aws_subnet.dualStack-subnet.id
+
+  key_name = "mbuil"
+
+  vpc_security_group_ids = [aws_security_group.allow_k8s.id]
+
+  root_block_device {
+    volume_size = 40
+    volume_type = "standard"
+  }
+
+  user_data = filebase64(%KATA_CLOUDINIT%)
+
+  tags = {
+    Name = "terraform-mbuil-kata-vm"
+  }
+}
+
 output "vpc_id" {
     value = aws_vpc.vpc.id
 }
@@ -156,5 +179,9 @@ output "subnet_id" {
 }
 
 output "publicIP" {
-    value = aws_instance.myInstance[*].public_ip
+  value = concat(aws_instance.myInstance[*].public_ip, aws_instance.kataNestedVM[*].public_ip)
+}
+
+output "publicIPKata" {
+  value = aws_instance.kataNestedVM[*].public_ip
 }

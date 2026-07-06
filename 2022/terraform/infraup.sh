@@ -160,9 +160,16 @@ ipv4public1=$(terraform output -json | jq -r '.ipAddresses.value[0]')
 popd
 }
 
+setAwsTemplateDefaults() {
+  local tf_file="$1"
+  sed -i 's/%KATA_COUNT%/0/g' "$tf_file"
+  sed -i 's/%KATA_INSTANCE_TYPE%/t3.large/g' "$tf_file"
+  sed -i 's/%KATA_CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_1.sh"/g' "$tf_file"
+}
+
 # Function to display usage
 usage() {
-  echo "Usage: $0 --k8s=<rke1|rancher|rancher-prime|k3s|rke2|windows|demo-gpu> [--cni=<canal|calico|cilium|flannel>] [--os=<ubuntu|sles>] [--multus]"
+  echo "Usage: $0 --k8s=<rke1|rancher|rancher-prime|k3s|rke2|kata|windows|demo-gpu> [--cni=<canal|calico|cilium|flannel>] [--os=<ubuntu|sles>] [--multus]"
   echo "  --k8s: Specify the Kubernetes distribution (required)."
   echo "  --cni: Specify the CNI plugin for RKE2 (default: canal)."
   echo "  --os: Specify the OS type (ubuntu or sles) for AWS AMIs (default: ubuntu)."
@@ -205,7 +212,7 @@ case "$OS_TYPE" in
     AMI_ID_AWS="ami-0bb457e0c5095fa9d" # Ubuntu AMI
     ;;
   "sles")
-    AMI_ID_AWS="ami-0c517408a745b7297" # SLES AMI
+    AMI_ID_AWS="ami-047daf4bfba5c3b5f" # SLES AMI
     ;;
   "rhel")
     AMI_ID_AWS="ami-0c00c3951305c3894" # RHEL9 AMI
@@ -270,6 +277,7 @@ case "$K8S_DISTRO" in
   "rancher-aws")
     echo "rancher-aws option"
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancher_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
@@ -279,6 +287,7 @@ case "$K8S_DISTRO" in
   "rancher-prime-aws")
     echo "rancher prime option"
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3sAndRancherPrime_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
@@ -288,6 +297,7 @@ case "$K8S_DISTRO" in
   "k3s-aws")
     echo "k3s option"
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3s_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/3/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
@@ -296,6 +306,7 @@ case "$K8S_DISTRO" in
   "k3s-ipv6")
     echo "k3s-ipv6 option"
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installK3snoDS.sh"/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
     applyTerraform aws "" "spain.tfvars"
@@ -318,14 +329,43 @@ case "$K8S_DISTRO" in
     fi
     sed -i "s/cni: .*/cni: ${current_cni_setting}/g" cloud-init-scripts\/installRKE2_0.sh
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/2/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf # Use the determined AMI_ID_AWS
     applyTerraform aws "" "spain.tfvars"
   ;;
+  "kata")
+    echo "kata option with cni plugin $CNI_PLUGIN and nested virtualization VM"
+    case "$CNI_PLUGIN" in
+      "canal"|"calico"|"cilium"|"flannel")
+        # Valid CNI plugin
+        ;;
+      *)
+        echo "Error: $CNI_PLUGIN is not a valid CNI plugin for RKE2. Supported: canal, calico, cilium, flannel."
+        exit 1
+        ;;
+    esac
+    current_cni_setting="${CNI_PLUGIN}"
+    if [ "$MULTUS_ENABLED" == "true" ]; then
+      echo "Multus included!"
+      current_cni_setting="multus,${current_cni_setting}"
+    fi
+    sed -i "s/cni: .*/cni: ${current_cni_setting}/g" cloud-init-scripts\/installRKE2_0.sh
+    cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
+    sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2_${count.index}.sh"/g' aws/aws.tf
+    sed -i 's/%COUNT%/2/g' aws/aws.tf
+    sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf
+    sed -i 's/%KATA_COUNT%/1/g' aws/aws.tf
+    sed -i 's/%KATA_INSTANCE_TYPE%/m8i.xlarge/g' aws/aws.tf
+    sed -i 's/%KATA_CLOUDINIT%/"..\/cloud-init-scripts\/installKata.sh"/g' aws/aws.tf
+    applyTerraform aws "" "spain.tfvars"
+  ;;
   "rke2-ha")
     echo "rke2 in HA mode"
     cp aws/template/aws.tf.template aws/aws.tf
+    setAwsTemplateDefaults aws/aws.tf
     sed -i 's/%CLOUDINIT%/"..\/cloud-init-scripts\/installRKE2HA_${count.index}.sh"/g' aws/aws.tf
     sed -i 's/%COUNT%/5/g' aws/aws.tf
     sed -i "s|%AMI%|$AMI_ID_AWS|g" aws/aws.tf

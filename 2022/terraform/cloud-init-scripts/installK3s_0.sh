@@ -1,5 +1,26 @@
 #!/bin/sh
-apt update
+if [ -f /etc/os-release ]; then
+    # Source the file to load its variables (like $ID)
+    . /etc/os-release
+
+    case "$ID" in
+        ubuntu)
+            echo "Detected Ubuntu. Running 'apt update'..."
+            apt update
+            ;;
+        sles)
+            echo "Detected SLES. Running 'zypper ref'..."
+            zypper ref
+            zypper up
+            ;;
+        *)
+            echo "Unsupported OS ID: $ID"
+            ;;
+    esac
+else
+    echo "Error: Cannot detect OS (Missing /etc/os-release)"
+    exit 1
+fi
 
 # Little server for the other VM to find me
 for i in 1 2; do echo "hola" | nc -l 43210; done &
