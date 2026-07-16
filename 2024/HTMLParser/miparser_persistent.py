@@ -235,6 +235,44 @@ def check_for_no_opportunities(driver):
         return False  # Indicate that the message was not found, meaning there *might* be opportunities
 
 
+def click_first_project_button(driver):
+    """Clicks the first visible 'Ver Proyecto' button/link on the opportunities page."""
+    project_button_xpath = (
+        "//button[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ver proyecto')]"
+        " | //a[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ver proyecto')]"
+        " | //*[self::button or self::a or @role='button'][contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ver proyecto')]"
+    )
+
+    try:
+        project_buttons = WebDriverWait(driver, 10).until(
+            lambda current_driver: [
+                element for element in current_driver.find_elements(By.XPATH, project_button_xpath)
+                if element.is_displayed() and element.is_enabled()
+            ]
+        )
+    except TimeoutException:
+        logger.warning("Opportunities were found, but no visible 'Ver Proyecto' button was detected.")
+        return False
+
+    first_button = project_buttons[0]
+
+    try:
+        button_text = (first_button.text or "").strip()
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", first_button)
+        WebDriverWait(driver, 10).until(lambda current_driver: first_button.is_enabled())
+
+        try:
+            first_button.click()
+        except Exception:
+            driver.execute_script("arguments[0].click();", first_button)
+
+        logger.info(f"Clicked project button: '{button_text or 'Ver Proyecto'}'")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to click 'Ver Proyecto' button: {e}")
+        return False
+
+
 async def check_for_opportunities(driver, token, chat_id):
     """
     Checks for new opportunities and handles notifications. Now an async function.
@@ -266,6 +304,7 @@ async def check_for_opportunities(driver, token, chat_id):
         return False
 
     logger.info(f"Parsed {len(opportunities)} opportunities with percentage data.")
+    click_first_project_button(driver)
 
     eligible_notifications = 0
 
@@ -377,13 +416,17 @@ def wait_for_authenticated_session(driver, timeout=20):
 async def periodic_monitoring_loop(driver, token, chat_id, url):
     """Keeps browser session alive and checks opportunities periodically in a new tab."""
     logger.info(f"Persistent monitoring mode enabled. Interval: {CHECK_INTERVAL_SECONDS}s")
+    monitoring_tab_handle = None
 
     while True:
         try:
             logger.info("Starting periodic opportunity check...")
-            driver.switch_to.window(driver.window_handles[0])
-            driver.execute_script("window.open('about:blank', '_blank');")
-            driver.switch_to.window(driver.window_handles[-1])
+            if monitoring_tab_handle not in driver.window_handles:
+                driver.switch_to.window(driver.window_handles[0])
+                driver.execute_script("window.open('about:blank', '_blank');")
+                monitoring_tab_handle = driver.window_handles[-1]
+
+            driver.switch_to.window(monitoring_tab_handle)
             driver.get(url)
 
             if is_login_page(driver):
@@ -391,6 +434,7 @@ async def periodic_monitoring_loop(driver, token, chat_id, url):
                 await send_telegram(token, chat_id, "Session expired. Re-authenticating...")
 
                 driver.close()
+                monitoring_tab_handle = None
                 driver.switch_to.window(driver.window_handles[0])
 
                 login(driver)
@@ -409,16 +453,6 @@ async def periodic_monitoring_loop(driver, token, chat_id, url):
         except Exception as e:
             logger.error(f"Error in monitoring loop: {e}")
             await send_telegram(token, chat_id, f"Error in monitoring loop: {str(e)}")
-
-        finally:
-            try:
-                while len(driver.window_handles) > 1:
-                    driver.switch_to.window(driver.window_handles[-1])
-                    driver.close()
-                driver.switch_to.window(driver.window_handles[0])
-                driver.get(url)
-            except Exception as e:
-                logger.warning(f"Could not fully reset tabs/session state: {e}")
 
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)
 
