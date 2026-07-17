@@ -75,9 +75,35 @@ Each version entry must follow this exact schema structure:
 * Commit the updated upgrade-responder-response-config.yaml file to the new branch
 * Push the new branch to origin
 * Open a Pull Request from the new branch targeting the staging branch using `gh pr create` with a descriptive title and summary of changes
+* Never commit or push directly to `staging`. All changes reach `staging` only through a Pull Request.
 
 ### Validation
 Before declaring the task complete, verify that:
 
-- The modified file parses as valid Kubernetes ConfigMap
+- The modified file is a valid ConfigMap **through all nested layers**. A plain
+  YAML parse of the file is NOT sufficient — this file has three serialization
+  layers: the file is YAML, `data."values.yaml"` is a string that is *itself*
+  YAML, and `configMap.responseConfig` inside that is a string that is JSON.
+  Fleet parses the inner layers, so a broken embedded block still passes a naive
+  file-level parse. You MUST run the check below and it MUST print all three OK
+  lines before declaring the task complete:
+
+  ```bash
+  python3 - <path-to-config.yaml> <<'EOF'
+  import yaml, json, sys
+  doc = yaml.safe_load(open(sys.argv[1]))
+  assert doc["kind"] == "ConfigMap"
+  inner = yaml.safe_load(doc["data"]["values.yaml"])          # layer 2: YAML-in-YAML
+  resp  = json.loads(inner["configMap"]["responseConfig"])    # layer 3: JSON-in-YAML
+  print("Layer 1 (ConfigMap YAML): OK")
+  print("Layer 2 (data.values.yaml): OK")
+  print(f"Layer 3 (responseConfig JSON): OK, {len(resp['versions'])} versions")
+  EOF
+  ```
+
+- When editing the JSON block under `responseConfig: |`, keep every line
+  indented consistently. In a YAML literal block (`|`), the first content line
+  sets the required indentation — a mis-indented opening `{` breaks the whole
+  block with `did not find expected key`.
+
 - Exactly one release is tagged as "latest".
