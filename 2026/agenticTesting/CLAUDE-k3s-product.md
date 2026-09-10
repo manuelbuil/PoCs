@@ -17,11 +17,17 @@ The task is to cherry-pick commits from https://github.com/k3s-io/docs to this l
 7. Create a different branch in the local project for each of the unsync commits
 8. Start the commit with [sync k3s-docs]
 9. Explain in the commit what changed and add a link to the PR from rke2-docs
-10. Push the branches to the Github project https://github.com/manuelbuil/k3s-product-docs so that I can later create a PR in the upstream project
+10. Push the branches to the Github project https://github.com/manuelbuil/k3s-product-docs
+11. Create a PR in the upstream project https://github.com/rancher/k3s-product-docs for each pushed branch
+    - Base branch: `main` of rancher/k3s-product-docs, head: the branch in manuelbuil/k3s-product-docs
+    - PR title: same as the commit subject (including the `[sync k3s-docs]` prefix)
+    - PR body: the commit message body, which already explains what changed and links to the source PR in k3s-io/docs
+    - Report the URL of each created PR
 
 ### Validation
 Check if the job completely successfully.
 - A branch was created for each of the commits
+- A PR was opened in rancher/k3s-product-docs for each branch
 
 ### Known Edge Cases
 - k3s-product-docs is written in ASCII and generated with Antora whereas rke2-docs uses Markdown and Docusaurus 2 as generator
