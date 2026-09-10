@@ -2,7 +2,7 @@
 #K3SVERSION=v1.27.7+k3s1
 apt update
 
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 
 cat <<EOF > config.yaml
 write-kubeconfig-mode: 644

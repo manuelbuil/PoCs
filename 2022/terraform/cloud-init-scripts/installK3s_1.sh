@@ -25,7 +25,7 @@ curl https://raw.githubusercontent.com/manuelbuil/PoCs/refs/heads/main/2022/terr
 
 source /tmp/utils.sh
 
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 
 
 # The other created VM has the next or the previous IP. Ping to check which one is it

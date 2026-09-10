@@ -25,7 +25,7 @@ fi
 # Little server for the other VM to find me
 for i in 1 2; do echo "hola" | nc -l 43210; done &
 
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 
 cat <<EOF > config.yaml
 write-kubeconfig-mode: 644

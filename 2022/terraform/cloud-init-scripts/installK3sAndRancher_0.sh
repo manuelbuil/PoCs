@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 
 myIP=$(curl -4 ifconfig.me)
 cat <<EOF > config.yaml
